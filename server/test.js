@@ -367,7 +367,7 @@ function cookie(setCookie) {
   console.log("12. ROOT_PAGE, request-host URLs, games hub, and back-to-links");
   function isGamesHub(res) {
     return res.status === 200 && !res.headers.location
-      && res.text.includes("Piggy Play")
+      && res.text.includes("Goddess Arcade")
       && res.text.includes("Created by your Goddess Mari")
       && res.text.includes("@goddessoftaurus")
       && res.text.includes("Pin the Tail on the Pig")

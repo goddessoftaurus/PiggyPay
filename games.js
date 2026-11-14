@@ -2,10 +2,10 @@
   "use strict";
 
   var C = window.CONFIG || {};
-  document.title = "Piggy Play — Games";
+  document.title = "Goddess Arcade — Games";
 
   var brand = document.getElementById("hubBrand");
-  if (brand) brand.textContent = "Piggy Play";
+  if (brand) brand.textContent = "Goddess Arcade";
 
   var handleEl = document.getElementById("hubHandle");
   if (handleEl) {

@@ -1,4 +1,4 @@
-/* PayPiggy games homepage — pink + red, handmade cards, Arial except the Piggy Play title. */
+/* PayPiggy games homepage — pink + red, handmade cards, Arial except the Goddess Arcade title. */
 body.games-hub{
   font:16px/1.5 Arial,Helvetica,sans-serif;
   padding:20px 16px 48px;
@@ -19,7 +19,7 @@ body.games-hub,body.games-hub .hub,body.games-hub a,body.games-hub p,body.games-
 }
 .hub-sign h1{
   margin:0;
-  font:400 clamp(30px,9.6vw,46px)/.95 "Matcha Style","Luckiest Guy",cursive;
+  font:400 clamp(26px,8.2vw,40px)/.95 "Matcha Style","Luckiest Guy",cursive;
   color:#e8126b;
   letter-spacing:0.3px;
   text-transform:none;
