@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PayPiggy — Confirm gifts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <style>
+    :root{--pink:#ff4d8d;--red:#e0115f;--deep:#b3001b;--ink:#3a0810;--cream:#fff5f7;--gold:#ffc83d}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font:16px/1.45 Fredoka,system-ui,sans-serif;color:var(--ink);
+      background:linear-gradient(180deg,var(--deep),var(--red) 30%,var(--pink))}
+    header{padding:22px 18px 8px;text-align:center;color:#fff}
+    header b{display:block;font:400 32px/1 'Luckiest Guy',system-ui,sans-serif;letter-spacing:.5px}
+    header p{margin:6px 0 0;font-weight:600;opacity:.92}
+    .wrap{max-width:760px;margin:0 auto;padding:12px 16px 48px}
+    .card{background:var(--cream);border-radius:24px;padding:20px;box-shadow:0 10px 28px rgba(80,0,20,.3);margin-top:14px}
+    h2{font:400 22px/1.1 'Luckiest Guy',system-ui,sans-serif;margin:0 0 12px;color:var(--deep)}
+    label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+    input{font:inherit;width:100%;padding:10px 12px;border:2px solid #ffd0e0;border-radius:12px}
+    button{font:400 16px 'Luckiest Guy',system-ui,sans-serif;letter-spacing:.3px;border:0;cursor:pointer}
+    .go{background:linear-gradient(180deg,var(--pink),var(--red));color:#fff;padding:12px 18px;border-radius:14px;box-shadow:0 4px 0 var(--deep);width:100%;margin-top:12px}
+    .err{color:var(--deep);font-weight:700;min-height:1.2em;margin-top:8px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #ffd0e0;vertical-align:middle}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;opacity:.7}
+    .amt{width:90px;padding:6px 8px}
+    .ok{background:var(--gold);color:var(--ink);padding:7px 12px;border-radius:999px}
+    .no{background:#ffd0e0;color:var(--deep);padding:7px 12px;border-radius:999px}
+    .row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .muted{opacity:.7;font-size:13px}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+    .out{background:transparent;color:var(--deep);text-decoration:underline;font-family:Fredoka,system-ui,sans-serif;font-weight:700}
+    .empty{padding:10px 0;opacity:.7}
+    .hide{display:none!important}
+    code{font:700 14px ui-monospace,Menlo,Consolas,monospace;background:#ffd0e0;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <header>
+    <b>PayPiggy</b>
+    <p>Confirm gifts that landed with a play code</p>
+  </header>
+  <div class="wrap">
+    <section class="card" id="loginCard">
+      <h2>Creator sign-in</h2>
+      <p class="muted">Use the ADMIN_PASSWORD from your server environment. Players never see this page.</p>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password">
+      <button class="go" type="button" id="loginBtn">Open the desk</button>
+      <div class="err" id="loginErr"></div>
+    </section>
+
+    <div id="desk" class="hide">
+      <section class="card">
+        <div class="toolbar">
+          <h2 style="margin:0">Waiting for you</h2>
+          <div style="display:flex;gap:12px;align-items:center">
+            <a class="out" href="/admin/analytics">Sales analytics</a>
+            <button class="out" type="button" id="logout">Sign out</button>
+          </div>
+        </div>
+        <p class="muted">Match the play code to the gift note on Throne, then approve the amount you actually received.</p>
+        <div id="pendingBox"><p class="empty">No gifts waiting.</p></div>
+      </section>
+      <section class="card">
+        <h2>Recently settled</h2>
+        <div id="recentBox"><p class="empty">Nothing yet.</p></div>
+      </section>
+      <section class="card">
+        <h2>Players</h2>
+        <div id="playersBox"><p class="empty">No one has played yet.</p></div>
+      </section>
+    </div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const money = (c) => "$" + (Number(c || 0) / 100).toFixed(2);
+    const when = (t) => t ? new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+
+    async function api(path, body) {
+      const opts = { credentials: "same-origin", headers: {} };
+      if (body !== undefined) {
+        opts.method = "POST";
+        opts.headers["Content-Type"] = "application/json";
+        opts.body = JSON.stringify(body);
+      }
+      const r = await fetch(path, opts);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Request failed");
+      return j;
+    }
+
+    function table(rows, head) {
+      if (!rows.length) return '<p class="empty">Nothing here.</p>';
+      return "<table><thead><tr>" + head.map((h) => "<th>" + h + "</th>").join("") + "</tr></thead><tbody>" + rows.join("") + "</tbody></table>";
+    }
+
+    async function refresh() {
+      const s = await api("/api/admin/state");
+      if (!s.pending.length) $("pendingBox").innerHTML = '<p class="empty">No gifts waiting.</p>';
+      else {
+        $("pendingBox").innerHTML = table(s.pending.map((l) => {
+          const dollars = (l.requested / 100).toFixed(2);
+          return "<tr data-id=\"" + l.id + "\"><td><code>" + l.code + "</code></td><td>" + money(l.requested) + "</td><td class=\"muted\">" + when(l.ts) + "</td>" +
+            "<td><div class=\"row-actions\"><input class=\"amt\" type=\"number\" min=\"0\" step=\"0.01\" value=\"" + dollars + "\">" +
+            "<button class=\"ok\" data-act=\"ok\">Approve</button><button class=\"no\" data-act=\"no\">Reject</button></div></td></tr>";
+        }), ["Code", "They asked", "When", "You received"]);
+      }
+      $("recentBox").innerHTML = s.recent.length ? table(s.recent.map((l) =>
+        "<tr><td><code>" + l.code + "</code></td><td>" + (l.status === "approved" ? money(l.approved) : "rejected") + "</td><td class=\"muted\">" + (l.source || "") + " · " + when(l.resolvedAt) + "</td></tr>"
+      ), ["Code", "Result", "Settled"]) : '<p class="empty">Nothing yet.</p>';
+      $("playersBox").innerHTML = s.players.length ? table(s.players.map((p) =>
+        "<tr><td><code>" + p.code + "</code></td><td>" + money(p.balance) + "</td><td>" + money(p.tab) + "</td><td>" + p.pins + "</td></tr>"
+      ), ["Code", "Pocket", "Tab", "Pins"]) : '<p class="empty">No one has played yet.</p>';
+    }
+
+    $("loginBtn").onclick = async () => {
+      $("loginErr").textContent = "";
+      try {
+        await api("/api/admin/login", { password: $("pw").value });
+        $("loginCard").classList.add("hide");
+        $("desk").classList.remove("hide");
+        await refresh();
+      } catch (e) { $("loginErr").textContent = e.message; }
+    };
+    $("pw").onkeydown = (e) => { if (e.key === "Enter") $("loginBtn").click(); };
+    $("logout").onclick = async () => { await api("/api/admin/logout", {}); location.reload(); };
+
+    $("pendingBox").addEventListener("click", async (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const tr = e.target.closest("tr");
+      const id = tr.getAttribute("data-id");
+      try {
+        if (btn.dataset.act === "ok") {
+          await api("/api/admin/loads/" + id + "/approve", { amount: tr.querySelector(".amt").value });
+        } else {
+          await api("/api/admin/loads/" + id + "/reject");
+        }
+        await refresh();
+      } catch (err) { alert(err.message); }
+    });
+
+    // Already signed in?
+    fetch("/api/admin/state", { credentials: "same-origin" }).then((r) => {
+      if (r.ok) { $("loginCard").classList.add("hide"); $("desk").classList.remove("hide"); refresh(); }
+    });
+  </script>
+</body>
+</html>

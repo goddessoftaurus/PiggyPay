@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: piggypay
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PUBLIC_URL
+        value: https://piggypay.onrender.com
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        sync: false

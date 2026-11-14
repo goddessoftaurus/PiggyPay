@@ -1,0 +1,100 @@
+/* Pin the Tail on the Pig — casino wheel */
+.wh-stage{
+  position:relative;
+  width:100%;
+  aspect-ratio:1;
+  margin:12px auto 8px;
+  max-width:420px;
+  border-radius:50%;
+}
+.wh-rim{
+  position:absolute;inset:0;
+  border-radius:50%;
+  background:
+    repeating-conic-gradient(from 8deg,#ffc83d 0 10deg,#6a0010 10deg 12deg),
+    radial-gradient(circle at 50% 50%,#ffc83d,#b8860b 70%);
+  box-shadow:
+    0 0 0 4px #6a0010,
+    0 14px 28px rgba(80,0,16,.4),
+    inset 0 0 0 10px #7a4a08;
+}
+.wh-wheel{
+  position:absolute;
+  inset:7%;
+  border-radius:50%;
+  overflow:hidden;
+  will-change:transform;
+  background:#3a0810;
+  box-shadow:inset 0 0 0 3px #fff5f7, 0 4px 0 rgba(58,8,16,.35);
+}
+.wh-wheel svg{width:100%;height:100%;display:block}
+.wh-hub{
+  position:absolute;left:50%;top:50%;
+  width:32%;aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  z-index:4;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ff8fb8,#ff4d8d 55%,#b3001b);
+  border:4px solid #ffc83d;
+  box-shadow:0 4px 0 #6a0010, inset 0 2px 8px rgba(255,255,255,.35);
+  overflow:hidden;
+  pointer-events:none;
+}
+.wh-hub svg{width:86%;height:86%;display:block;margin:7% auto 0}
+.wh-sash{
+  position:absolute;left:8%;top:38%;width:84%;height:16%;
+  background:#6a0010;border:2px solid #ff4d8d;border-radius:8px;
+  transform:rotate(-8deg);opacity:0;transition:opacity .3s;
+  box-shadow:0 2px 0 #3a0810;
+}
+.wh-stage.blind .wh-sash{opacity:1}
+
+/* Curly tail pointer sitting at 12 o'clock, tip toward the wheel */
+.wh-pointer{
+  position:absolute;left:50%;top:-2%;
+  width:16%;z-index:6;
+  transform:translate(-50%,0);
+  transform-origin:50% 12%;
+  pointer-events:none;
+  filter:drop-shadow(0 3px 2px rgba(58,8,16,.45));
+  transition:transform .2s cubic-bezier(.2,1.4,.3,1);
+}
+.wh-pointer.tick{transform:translate(-50%,0) rotate(12deg)}
+.wh-pointer.pinned{transform:translate(-50%,8%) rotate(6deg) scale(1.05)}
+.wh-pointer svg{width:100%;height:auto;display:block}
+
+.wh-veil{
+  position:absolute;inset:7%;z-index:5;border-radius:50%;
+  background:rgba(40,0,16,.42);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .35s;
+  display:grid;place-items:center;align-content:center;gap:8px;
+}
+.wh-stage.blind .wh-veil{opacity:1}
+.wh-veil .msg{
+  background:#3a0810;color:#fff;
+  font:400 15px/1 'Luckiest Guy',system-ui,sans-serif;
+  padding:6px 14px;border-radius:99px;border:2px solid #ff4d8d;
+}
+.wh-reel{
+  background:#1a0508;color:#ffc83d;
+  font:400 clamp(26px,8vw,40px)/1 'Luckiest Guy',system-ui,sans-serif;
+  padding:8px 16px;border-radius:14px;border:3px solid #ffc83d;
+  min-width:40%;text-align:center;letter-spacing:1px;
+  box-shadow:inset 0 0 0 3px #6a0010;opacity:0;
+}
+.wh-stage.blind .wh-reel{opacity:1}
+
+.wh-result{position:absolute;inset:0;z-index:8;display:none;place-items:center;padding:10px}
+.wh-result.show{display:grid}
+
+.wh-peg{
+  position:absolute;width:8px;height:8px;border-radius:50%;
+  background:#ffc83d;border:1.5px solid #6a0010;
+  z-index:3;transform:translate(-50%,-50%);pointer-events:none;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .wh-wheel{transition:none!important}
+  .wh-pointer{transition:none!important}
+}

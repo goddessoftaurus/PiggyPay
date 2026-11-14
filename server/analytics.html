@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PayPiggy — Sales</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <style>
+    :root{--pink:#ff4d8d;--red:#e0115f;--deep:#b3001b;--ink:#3a0810;--cream:#fff5f7;--gold:#ffc83d;--pale:#ffd0e0}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font:16px/1.45 Fredoka,system-ui,sans-serif;color:var(--ink);
+      background:linear-gradient(180deg,var(--deep),var(--red) 30%,var(--pink))}
+    header{padding:22px 18px 8px;text-align:center;color:#fff}
+    header b{display:block;font:400 32px/1 'Luckiest Guy',system-ui,sans-serif;letter-spacing:.5px}
+    header p{margin:6px 0 0;font-weight:600;opacity:.92}
+    .wrap{max-width:760px;margin:0 auto;padding:12px 16px 48px}
+    .card{background:var(--cream);border-radius:24px;padding:20px;box-shadow:0 10px 28px rgba(80,0,20,.3);margin-top:14px}
+    h2{font:400 22px/1.1 'Luckiest Guy',system-ui,sans-serif;margin:0 0 12px;color:var(--deep)}
+    label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+    input{font:inherit;width:100%;padding:10px 12px;border:2px solid #ffd0e0;border-radius:12px}
+    button{font:400 16px 'Luckiest Guy',system-ui,sans-serif;letter-spacing:.3px;border:0;cursor:pointer}
+    .go{background:linear-gradient(180deg,var(--pink),var(--red));color:#fff;padding:12px 18px;border-radius:14px;box-shadow:0 4px 0 var(--deep);width:100%;margin-top:12px}
+    .err{color:var(--deep);font-weight:700;min-height:1.2em;margin-top:8px}
+    .muted{opacity:.7;font-size:13px}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .nav{display:flex;gap:12px;align-items:center}
+    .nav a,.out{background:transparent;color:var(--deep);text-decoration:underline;font-family:Fredoka,system-ui,sans-serif;font-weight:700}
+    .hide{display:none!important}
+    .ring-wrap{position:relative;width:260px;height:260px;margin:8px auto 4px}
+    .ring-wrap svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
+    .ring-wrap .bar{transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 2px 0 #6a0010)}
+    .ring-label{position:absolute;inset:0;display:grid;place-items:center;align-content:center;text-align:center;pointer-events:none}
+    .ring-label b{font:400 36px/1 'Luckiest Guy',system-ui,sans-serif;color:var(--deep);letter-spacing:.4px}
+    .ring-label small{display:block;font-weight:700;margin-top:4px;color:var(--red)}
+    .ring-label em{display:block;font:400 22px/1 'Luckiest Guy',system-ui,sans-serif;color:var(--pink);margin-top:4px;font-style:normal}
+    .ring-wrap.reached .bar{stroke:url(#ringGold)}
+    .ring-wrap.reached{animation:pop .6s cubic-bezier(.2,1.4,.3,1)}
+    .celebrate{text-align:center;font:400 22px/1.2 'Luckiest Guy',system-ui,sans-serif;color:var(--deep);margin:8px 0 0;min-height:1.2em}
+    .celebrate.on{animation:pop .5s cubic-bezier(.2,1.4,.3,1)}
+    @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media (min-width:560px){.stats{grid-template-columns:repeat(3,1fr)}}
+    .stat{background:#fff;border:2px solid var(--pale);border-radius:16px;padding:12px 12px 10px}
+    .stat span{display:block;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.7}
+    .stat b{font:400 24px/1.1 'Luckiest Guy',system-ui,sans-serif;color:var(--deep)}
+    .stat em{display:block;font-style:normal;font-size:12px;font-weight:700;color:var(--red);margin-top:2px}
+    .bars{display:grid;gap:10px}
+    .barrow{display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;font-size:14px;font-weight:700}
+    .track{height:16px;background:var(--pale);border-radius:99px;overflow:hidden}
+    .fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--pink),var(--red));transition:width 1s ease}
+    .fill.stripe{background:linear-gradient(90deg,#8b85ff,#635bff)}
+    .fill.poster{background:linear-gradient(90deg,#ff8fb8,var(--pink))}
+    .fill.wheel{background:linear-gradient(90deg,var(--gold),#e0a000)}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #ffd0e0}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;opacity:.7}
+    .empty{padding:10px 0;opacity:.7}
+    code{font:700 14px ui-monospace,Menlo,Consolas,monospace;background:#ffd0e0;padding:2px 6px;border-radius:6px}
+    .confetti{position:fixed;inset:0;pointer-events:none;z-index:20}
+  </style>
+</head>
+<body>
+  <header>
+    <b>PayPiggy</b>
+    <p>Sales toward your goal</p>
+  </header>
+  <div class="wrap">
+    <section class="card" id="loginCard">
+      <h2>Creator sign-in</h2>
+      <p class="muted">Use the ADMIN_PASSWORD from your server environment. Players never see this page.</p>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password">
+      <button class="go" type="button" id="loginBtn">Open sales</button>
+      <div class="err" id="loginErr"></div>
+    </section>
+
+    <div id="desk" class="hide">
+      <section class="card">
+        <div class="toolbar">
+          <h2 style="margin:0">Toward the goal</h2>
+          <div class="nav">
+            <a href="/admin">Confirm gifts</a>
+            <button class="out" type="button" id="logout">Sign out</button>
+          </div>
+        </div>
+        <div class="ring-wrap" id="ringWrap">
+          <svg viewBox="0 0 220 220" aria-hidden="true">
+            <defs>
+              <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#ff4d8d"/>
+                <stop offset="1" stop-color="#b3001b"/>
+              </linearGradient>
+              <linearGradient id="ringGold" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#ffe27a"/>
+                <stop offset="1" stop-color="#e0a000"/>
+              </linearGradient>
+            </defs>
+            <circle cx="110" cy="110" r="88" fill="none" stroke="#ffd0e0" stroke-width="18"/>
+            <circle class="bar" id="ringBar" cx="110" cy="110" r="88" fill="none" stroke="url(#ringGrad)" stroke-width="18"
+              stroke-linecap="round" stroke-dasharray="553" stroke-dashoffset="553"/>
+          </svg>
+          <div class="ring-label">
+            <b id="ringAmt">$0</b>
+            <small id="ringGoal">of $1,000</small>
+            <em id="ringPct">0%</em>
+          </div>
+        </div>
+        <div class="celebrate" id="celebrate"></div>
+      </section>
+
+      <section class="card">
+        <h2>Sales</h2>
+        <div class="stats" id="statsGrid"></div>
+      </section>
+
+      <section class="card">
+        <h2>By method</h2>
+        <div class="bars" id="methodBars"></div>
+      </section>
+
+      <section class="card">
+        <h2>Pinned &amp; spun</h2>
+        <div class="bars" id="gameBars"></div>
+      </section>
+
+      <section class="card">
+        <h2>Recent sales</h2>
+        <div id="recentBox"><p class="empty">No sales yet.</p></div>
+      </section>
+    </div>
+  </div>
+  <canvas class="confetti" id="fx"></canvas>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const CIRC = 2 * Math.PI * 88;
+    const money = (c) => "$" + (Number(c || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const money2 = (c) => "$" + (Number(c || 0) / 100).toFixed(2);
+    const when = (t) => t ? new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+
+    async function api(path, body) {
+      const opts = { credentials: "same-origin", headers: {} };
+      if (body !== undefined) {
+        opts.method = "POST";
+        opts.headers["Content-Type"] = "application/json";
+        opts.body = JSON.stringify(body);
+      }
+      const r = await fetch(path, opts);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Request failed");
+      return j;
+    }
+
+    function countUp(el, toCents, prefix) {
+      const start = performance.now();
+      const from = 0;
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / 900);
+        const e = 1 - Math.pow(1 - t, 3);
+        const v = Math.round(from + (toCents - from) * e);
+        el.textContent = (prefix || "") + money(v);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    function paintRing(s) {
+      const bar = $("ringBar");
+      bar.style.strokeDasharray = String(CIRC);
+      bar.style.strokeDashoffset = String(CIRC);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const pct = Math.max(0, Math.min(100, s.percent || 0));
+          bar.style.strokeDashoffset = String(CIRC * (1 - pct / 100));
+        });
+      });
+      countUp($("ringAmt"), s.totalFunds);
+      $("ringGoal").textContent = "of " + money(s.goal);
+      $("ringPct").textContent = (s.percent || 0) + "%";
+      $("ringWrap").classList.toggle("reached", !!s.reached);
+      const cele = $("celebrate");
+      if (s.reached) {
+        cele.textContent = "Goal reached! 🐷";
+        cele.classList.add("on");
+        confetti();
+      } else {
+        cele.textContent = "";
+        cele.classList.remove("on");
+      }
+    }
+
+    function stat(label, amount, extra) {
+      return '<div class="stat"><span>' + label + "</span><b>" + money2(amount) + "</b>" +
+        (extra != null ? "<em>" + extra + "</em>" : "") + "</div>";
+    }
+
+    function barRow(name, amount, total, cls) {
+      const pct = total > 0 ? Math.round((amount / total) * 100) : 0;
+      return '<div class="barrow"><span>' + name + '</span><div class="track"><div class="fill ' + (cls || "") +
+        '" style="width:' + pct + '%"></div></div><b>' + money2(amount) + "</b></div>";
+    }
+
+    async function refresh() {
+      const s = await api("/api/admin/stats");
+      paintRing(s);
+      $("statsGrid").innerHTML =
+        stat("Total funds", s.totalFunds, s.salesCount + " sale" + (s.salesCount === 1 ? "" : "s")) +
+        stat("Today", s.salesToday.amount, s.salesToday.count + " sale" + (s.salesToday.count === 1 ? "" : "s")) +
+        stat("Last 7 days", s.sales7d.amount, s.sales7d.count + " sale" + (s.sales7d.count === 1 ? "" : "s")) +
+        stat("Last 30 days", s.sales30d.amount, s.sales30d.count + " sale" + (s.sales30d.count === 1 ? "" : "s")) +
+        stat("Number of sales", 0, "").replace(money2(0), String(s.salesCount));
+
+      const m = s.byMethod || {};
+      const mTotal = (m.throne && m.throne.amount || 0) + (m.stripe && m.stripe.amount || 0);
+      $("methodBars").innerHTML =
+        barRow("Throne", m.throne && m.throne.amount || 0, mTotal || 1, "") +
+        '<div class="muted" style="margin:-6px 0 4px 98px">' + ((m.throne && m.throne.count) || 0) + " approved gifts</div>" +
+        barRow("Stripe", m.stripe && m.stripe.amount || 0, mTotal || 1, "stripe") +
+        '<div class="muted" style="margin:-6px 0 0 98px">' + ((m.stripe && m.stripe.count) || 0) + " card payments</div>";
+
+      const g = s.games || {};
+      const gTotal = (g.poster && g.poster.amount || 0) + (g.wheel && g.wheel.amount || 0) || 1;
+      $("gameBars").innerHTML =
+        barRow("Poster pins", g.poster && g.poster.amount || 0, gTotal, "poster") +
+        '<div class="muted" style="margin:-6px 0 4px 98px">' + ((g.poster && g.poster.count) || 0) + " pins</div>" +
+        barRow("Wheel of Financial Torture", g.wheel && g.wheel.amount || 0, gTotal, "wheel") +
+        '<div class="muted" style="margin:-6px 0 0 98px">' + ((g.wheel && g.wheel.count) || 0) + " spins</div>";
+
+      const rows = (s.recentSales || []);
+      if (!rows.length) $("recentBox").innerHTML = '<p class="empty">No sales yet.</p>';
+      else {
+        $("recentBox").innerHTML = "<table><thead><tr><th>Code</th><th>Amount</th><th>Method</th><th>When</th></tr></thead><tbody>" +
+          rows.map((r) => "<tr><td><code>" + r.code + "</code></td><td>" + money2(r.amount) + "</td><td>" +
+            (r.method || r.source || "") + "</td><td class=\"muted\">" + when(r.ts) + "</td></tr>").join("") +
+          "</tbody></table>";
+      }
+    }
+
+    $("loginBtn").onclick = async () => {
+      $("loginErr").textContent = "";
+      try {
+        await api("/api/admin/login", { password: $("pw").value });
+        $("loginCard").classList.add("hide");
+        $("desk").classList.remove("hide");
+        await refresh();
+      } catch (e) { $("loginErr").textContent = e.message; }
+    };
+    $("pw").onkeydown = (e) => { if (e.key === "Enter") $("loginBtn").click(); };
+    $("logout").onclick = async () => { await api("/api/admin/logout", {}); location.reload(); };
+
+    fetch("/api/admin/stats", { credentials: "same-origin" }).then((r) => {
+      if (r.ok) { $("loginCard").classList.add("hide"); $("desk").classList.remove("hide"); refresh(); }
+    });
+
+    const fx = $("fx"), fctx = fx.getContext("2d");
+    let parts = [], fxOn = false;
+    function sizeFx() {
+      const d = window.devicePixelRatio || 1;
+      fx.width = innerWidth * d; fx.height = innerHeight * d;
+      fctx.setTransform(d, 0, 0, d, 0, 0);
+    }
+    function confetti() {
+      if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const cols = ["#ff4d8d", "#ffc83d", "#e0115f", "#ff8fb8", "#b3001b", "#fff5f7"];
+      for (let i = 0; i < 100; i++) parts.push({
+        x: innerWidth / 2 + (Math.random() - 0.5) * 180, y: 180,
+        vx: (Math.random() - 0.5) * 12, vy: -Math.random() * 10 - 3,
+        r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+        w: 6 + Math.random() * 8, h: 4 + Math.random() * 5,
+        c: cols[Math.floor(Math.random() * cols.length)], life: 0
+      });
+      if (!fxOn) { fxOn = true; requestAnimationFrame(fxLoop); }
+    }
+    function fxLoop() {
+      fctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.vy += 0.38; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
+        if (p.y > innerHeight + 20 || p.life > 240) { parts.splice(i, 1); continue; }
+        fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.r);
+        fctx.fillStyle = p.c; fctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); fctx.restore();
+      }
+      if (parts.length) requestAnimationFrame(fxLoop);
+      else { fxOn = false; fctx.clearRect(0, 0, innerWidth, innerHeight); }
+    }
+    sizeFx();
+    window.addEventListener("resize", sizeFx);
+  </script>
+</body>
+</html>

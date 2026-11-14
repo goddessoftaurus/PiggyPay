@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PayPiggy embed demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#241016;--pink:#ff4d8d;--red:#e0115f}
+    *{box-sizing:border-box}
+    body{margin:0;font:18px/1.55 Fredoka,system-ui,sans-serif;color:var(--ink);background:#fff8f9}
+    header{background:linear-gradient(90deg,#b3001b,#e0115f,#ff4d8d);color:#fff;padding:22px 20px 18px;text-align:center}
+    header strong{font:700 26px 'Luckiest Guy',system-ui,sans-serif;display:block}
+    header span{opacity:.9;font-size:14px}
+    main{max-width:560px;margin:0 auto;padding:22px 16px 48px}
+    .intro{background:#fff;border:1.5px solid #ffd0e0;border-radius:18px;padding:16px 18px;margin-bottom:18px}
+    .intro h1{font:700 22px 'Luckiest Guy',system-ui,sans-serif;margin:0 0 6px;color:#b3001b}
+    .intro p{margin:0;font-size:15px}
+    .intro code{font:13px ui-monospace,Menlo,Consolas,monospace;background:#ffd0e0;padding:1px 6px;border-radius:6px}
+    #paypiggy{min-height:680px}
+    footer{text-align:center;font-size:13px;opacity:.65;margin-top:18px}
+  </style>
+</head>
+<body>
+  <header>
+    <strong>A host page, not PayPiggy itself</strong>
+    <span>This is a stand-in site showing the embeddable widget.</span>
+  </header>
+  <main>
+    <div class="intro">
+      <h1>Embed demo</h1>
+      <p>The game below is loaded in an auto-height iframe via <code>&lt;div id="paypiggy"&gt;</code> and <code>widget/embed.js</code>.</p>
+    </div>
+    <div id="paypiggy" data-src="widget/widget.html"></div>
+    <div class="intro" style="margin-top:28px">
+      <h1>Wheel widget</h1>
+      <p>Same pocket, different game. Mount with <code>id="paypiggy-wheel"</code> or <code>data-src="widget/wheel.html"</code>.</p>
+    </div>
+    <div id="paypiggy-wheel" data-src="widget/wheel.html"></div>
+    <footer>Pin the Tail on the Pig · PayPiggy widgets</footer>
+  </main>
+  <script src="widget/embed.js"></script>
+</body>
+</html>
