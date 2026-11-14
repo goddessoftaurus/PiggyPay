@@ -1,6 +1,7 @@
 /* PayPiggy wheels — handmade, paper-and-marker look. Arial everywhere. */
 body.game.wheel-page,
 body.game.wheel-page .back,
+body.game.wheel-page .back-row,
 body.game.wheel-page .game-switch,
 body.game.wheel-page .game-switch a{
   font-family:Arial,Helvetica,sans-serif;

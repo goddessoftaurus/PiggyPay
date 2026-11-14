@@ -91,6 +91,10 @@ const CONFIG = {
   /* "Back to links" on the game pages. Opens in the same tab. */
   backLinkUrl: "https://linktr.ee/crystal98xo",
 
+  /* Combined games homepage. Game pages on other hosts (like wheeloftorture)
+     send "Back to games" here so everything funnels to one hub. */
+  gamesHubUrl: "https://piggyplay.onrender.com/games.html",
+
   /* Pay up opens an in-page sheet with Throne + card options, pre-filled
      with the amount owed. PAYMENT_URL is unused (kept for compatibility). */
   PAYMENT_URL: "",

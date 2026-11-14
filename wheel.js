@@ -45,8 +45,25 @@
   if (!root) return;
 
   var BACK_LINK = C.backLinkUrl || "https://linktr.ee/crystal98xo";
+  var GAMES_HUB = C.gamesHubUrl || "https://piggyplay.onrender.com/games.html";
+  function gamesHubHref() {
+    var href = GAMES_HUB;
+    try {
+      var here = String(location.hostname || "").toLowerCase();
+      var hubHost = "";
+      try { hubHost = new URL(GAMES_HUB, location.href).hostname.toLowerCase(); } catch (e2) {}
+      if (!here || here === "localhost" || here === "127.0.0.1" || (hubHost && here === hubHost)) {
+        href = "/games.html";
+      }
+    } catch (e) {}
+    try {
+      var code = new URLSearchParams(location.search || "").get("code") || "";
+      if (code) href += (href.indexOf("?") >= 0 ? "&" : "?") + "code=" + encodeURIComponent(code);
+    } catch (e) {}
+    return href;
+  }
   Array.prototype.forEach.call(document.querySelectorAll("a.back"), function (a) {
-    a.href = BACK_LINK;
+    a.href = a.classList.contains("back-games") ? gamesHubHref() : BACK_LINK;
     a.removeAttribute("target");
   });
   if (IS_HUM) root.classList.add("wh-humiliation");

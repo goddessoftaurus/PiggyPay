@@ -8,7 +8,7 @@
 }
 .pt{max-width:480px;margin:0 auto;display:grid;gap:14px;color:var(--pt-ink);font:16px/1.45 Arial,Helvetica,sans-serif}
 /* Pin game page + widget: one UI font. Exception is .pt-sign b (PAYPIGGY). */
-body.game,body.widget,body.game .wrap,body.game .back,body.game .game-switch,body.game .game-switch a,
+body.game,body.widget,body.game .wrap,body.game .back,body.game .back-row,body.game .game-switch,body.game .game-switch a,
 .pt button,.pt input,.pt a,.pt code,.pt small,.pt h1,.pt h2,.pt h3,.pt li,.pt span,.pt b,.pt p,.pt label{
   font-family:Arial,Helvetica,sans-serif}
 body.game,body.widget{font:16px/1.5 Arial,Helvetica,sans-serif}

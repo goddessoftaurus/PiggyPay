@@ -364,9 +364,24 @@ function cookie(setCookie) {
   ok("analytics wheel count unchanged", r.json.games.wheel.count === wheelBefore, JSON.stringify(r.json.games.wheel));
   ok("analytics humiliation count unchanged", r.json.games.humiliation.count === humBefore, JSON.stringify(r.json.games.humiliation));
 
-  console.log("12. ROOT_PAGE, request-host URLs, and back-to-links");
+  console.log("12. ROOT_PAGE, request-host URLs, games hub, and back-to-links");
+  function isGamesHub(res) {
+    return res.status === 200 && !res.headers.location
+      && /PAYPIGGY/.test(res.text)
+      && res.text.includes("Pin the Tail on the Pig")
+      && res.text.includes("Wheel of Financial Torture")
+      && res.text.includes("Wheel of Humiliation")
+      && res.text.includes('href="/admin">Admin</a>')
+      && res.text.includes("← back to links");
+  }
   r = await req(port, "GET", "/");
-  ok("GET / serves the links page when ROOT_PAGE is unset", r.status === 200 && !r.headers.location, "status=" + r.status + " loc=" + r.headers.location);
+  ok("GET / serves the games hub when ROOT_PAGE is unset", isGamesHub(r), "status=" + r.status + " loc=" + r.headers.location);
+  r = await req(port, "GET", "/games");
+  ok("GET /games serves the games hub", isGamesHub(r), "status=" + r.status);
+  r = await req(port, "GET", "/games.html");
+  ok("GET /games.html serves the games hub", isGamesHub(r), "status=" + r.status);
+  r = await req(port, "GET", "/index.html");
+  ok("GET /index.html still serves the links page", r.status === 200 && r.text.includes("body class=\"bio\"") && !r.text.includes("hub-cards"), "status=" + r.status);
 
   process.env.ROOT_PAGE = "wheel.html";
   r = await req(port, "GET", "/");
@@ -378,7 +393,7 @@ function cookie(setCookie) {
   ok("ROOT_PAGE strips a leading slash", r.status === 302 && r.headers.location === "/humiliation.html?code=PIG-AA", "loc=" + r.headers.location);
   process.env.ROOT_PAGE = "https://evil.example";
   r = await req(port, "GET", "/");
-  ok("unsafe ROOT_PAGE is ignored", r.status === 200 && !r.headers.location, "status=" + r.status + " loc=" + r.headers.location);
+  ok("unsafe ROOT_PAGE is ignored and the games hub is served", isGamesHub(r), "status=" + r.status + " loc=" + r.headers.location);
   delete process.env.ROOT_PAGE;
 
   const prevPublic = process.env.PUBLIC_URL;
@@ -396,16 +411,21 @@ function cookie(setCookie) {
   const fs = require("fs");
   const path = require("path");
   ok("backLinkUrl defaults to the Linktree", CONFIG.backLinkUrl === "https://linktr.ee/crystal98xo", "got=" + CONFIG.backLinkUrl);
+  ok("gamesHubUrl points at the piggyplay hub", CONFIG.gamesHubUrl === "https://piggyplay.onrender.com/games.html", "got=" + CONFIG.gamesHubUrl);
   for (const file of ["game.html", "wheel.html", "humiliation.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     const backs = html.match(/class="back[^"]*"[^>]*>/g) || [];
-    const allLinktree = (html.match(/class="back[^"]*"/g) || []).length >= 2
-      && html.includes('href="https://linktr.ee/crystal98xo">← back to links');
+    const allLinktree = html.includes('href="https://linktr.ee/crystal98xo">← back to links');
+    const hasGames = html.includes('class="back back-games"') && html.includes("← back to games");
     const leftover = /class="back[^"]*"[^>]*href="index\.html"/.test(html) || /href="index\.html"[^>]*class="back/.test(html);
     const blank = /class="back[^"]*"[^>]*target="_blank"/.test(html);
-    ok(file + " back links go to Linktree in the same tab", allLinktree && !leftover && !blank,
-      "backs=" + backs.join(" | ") + " leftover=" + leftover);
+    ok(file + " has Back to links and Back to games in the same tab", allLinktree && hasGames && !leftover && !blank,
+      "backs=" + backs.join(" | ") + " leftover=" + leftover + " games=" + hasGames);
   }
+  const gameJs = fs.readFileSync(path.join(__dirname, "..", "game.js"), "utf8");
+  const wheelJs = fs.readFileSync(path.join(__dirname, "..", "wheel.js"), "utf8");
+  ok("game.js wires Back to games through gamesHubUrl", gameJs.includes("gamesHubHref") && gameJs.includes("back-games") && gameJs.includes("gamesHubUrl"));
+  ok("wheel.js wires Back to games through gamesHubUrl", wheelJs.includes("gamesHubHref") && wheelJs.includes("back-games") && wheelJs.includes("gamesHubUrl"));
 
   console.log("13. Pin zones, Pay up pop-up, and wheel flick");
   const pin = require("../pin-zones");
@@ -480,9 +500,6 @@ function cookie(setCookie) {
   const landing0 = (360 - 20) % 360;
   const norm = (n) => ((n % 360) + 360) % 360;
   ok("flick landing stays on the chosen slice", Math.abs(norm(fwd) - landing0) < 0.01 && Math.abs(norm(back) - landing0) < 0.01, "fwd=" + norm(fwd) + " back=" + norm(back) + " want=" + landing0);
-
-  const gameJs = fs.readFileSync(path.join(__dirname, "..", "game.js"), "utf8");
-  const wheelJs = fs.readFileSync(path.join(__dirname, "..", "wheel.js"), "utf8");
   ok("Pay up opens an in-page sheet with Throne and card options",
     gameJs.includes('id="ptPay">Pay up</button>') &&
     gameJs.includes("function openPayUp") &&

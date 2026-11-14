@@ -450,10 +450,11 @@ function createApp() {
 
   app.get("/", (req, res, next) => {
     const page = rootPageTarget();
-    if (!page) return next();
     const qIndex = req.url.indexOf("?");
     const qs = qIndex >= 0 ? req.url.slice(qIndex) : "";
-    res.redirect(302, "/" + page + qs);
+    if (page) return res.redirect(302, "/" + page + qs);
+    // Default: the combined games homepage. index.html stays at /index.html.
+    res.sendFile(path.join(ROOT, "games.html"));
   });
 
   app.use(express.static(ROOT, { extensions: ["html"] }));
@@ -476,6 +477,7 @@ if (require.main === module) {
     console.log("  Test play: http://localhost:" + port + "/admin/test");
     const rootPage = rootPageTarget();
     if (rootPage) console.log("  Root / :  http://localhost:" + port + "/" + rootPage + "  (ROOT_PAGE)");
+    else console.log("  Games:    http://localhost:" + port + "/  (games hub)");
     if (!pw) console.log("  WARNING: ADMIN_PASSWORD is not set. Admin login will fail.");
     console.log("  Stripe checkout: " + (stripeEnabled() ? "on" : "off"));
     console.log("  Throne gifts:    " + (throneEnabled() ? "on" : "off"));
