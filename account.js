@@ -10,7 +10,7 @@
   var TOKEN_KEY = "paypiggy-token";
   var STORE_KEY = "paypiggy-demo-v2";
   var API = (C.apiBase || "").replace(/\/$/, "");
-  var GAMES_HUB = C.gamesHubUrl || "https://piggyplay.onrender.com/games.html";
+  var GAMES_HUB = C.gamesHubUrl || "https://goddessarcade.onrender.com/games.html";
   var BACK_LINK = C.backLinkUrl || "https://linktr.ee/crystal98xo";
 
   var demo = true;

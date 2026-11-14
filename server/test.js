@@ -413,7 +413,7 @@ function cookie(setCookie) {
   const fs = require("fs");
   const path = require("path");
   ok("backLinkUrl defaults to the Linktree", CONFIG.backLinkUrl === "https://linktr.ee/crystal98xo", "got=" + CONFIG.backLinkUrl);
-  ok("gamesHubUrl points at the piggyplay hub", CONFIG.gamesHubUrl === "https://piggyplay.onrender.com/games.html", "got=" + CONFIG.gamesHubUrl);
+  ok("gamesHubUrl points at the goddessarcade hub", CONFIG.gamesHubUrl === "https://goddessarcade.onrender.com/games.html", "got=" + CONFIG.gamesHubUrl);
   for (const file of ["game.html", "wheel.html", "humiliation.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     const backs = html.match(/class="back[^"]*"[^>]*>/g) || [];

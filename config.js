@@ -93,7 +93,7 @@ const CONFIG = {
 
   /* Combined games homepage. Game pages on other hosts (like wheeloftorture)
      send "Back to games" here so everything funnels to one hub. */
-  gamesHubUrl: "https://piggyplay.onrender.com/games.html",
+  gamesHubUrl: "https://goddessarcade.onrender.com/games.html",
 
   /* Pay up opens an in-page sheet with Throne + card options, pre-filled
      with the amount owed. PAYMENT_URL is unused (kept for compatibility). */

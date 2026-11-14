@@ -45,7 +45,7 @@
   if (!root) return;
 
   var BACK_LINK = C.backLinkUrl || "https://linktr.ee/crystal98xo";
-  var GAMES_HUB = C.gamesHubUrl || "https://piggyplay.onrender.com/games.html";
+  var GAMES_HUB = C.gamesHubUrl || "https://goddessarcade.onrender.com/games.html";
   function gamesHubHref() {
     var href = GAMES_HUB;
     try {
