@@ -112,6 +112,39 @@ function resolvePin(seg, balance) {
   };
 }
 
+
+const HUMILIATION_PRICE_CENTS = 500;
+
+const DEFAULT_HUMILIATION_TASKS = [
+  { label: "Tape selfie", text: "Tape across your face, then send a selfie" },
+  { label: "One finger", text: "Jerk the tip with one finger only for 2 minutes" },
+  { label: "Sit on hands", text: "Sit on your hands until they go numb" },
+  { label: "Ice water", text: "Balls in ice water for 30 seconds" },
+  { label: "Forehead", text: "Write \"PayPiggy\" on your forehead in marker and send a selfie" },
+  { label: "Oink 20×", text: "Oink 20 times on camera" },
+  { label: "Panties", text: "Wear panties all day under your clothes" },
+  { label: "Kneel 10 min", text: "Kneel in the corner for 10 minutes" },
+  { label: "Floor meal", text: "Eat your next meal off a plate on the floor with no hands" },
+  { label: "Clothespins", text: "Wear a clothespin on each nipple for 5 minutes" }
+];
+
+function humiliationTasks() {
+  const list = CONFIG.humiliationWheel && Array.isArray(CONFIG.humiliationWheel.tasks)
+    ? CONFIG.humiliationWheel.tasks
+    : null;
+  const cleaned = (list || []).map((t) => ({
+    label: String((t && t.label) || "").trim(),
+    text: String((t && t.text) || "").trim()
+  })).filter((t) => t.text);
+  return cleaned.length ? cleaned : DEFAULT_HUMILIATION_TASKS;
+}
+
+function pickHumiliationTask(tasks) {
+  const n = tasks.length;
+  const index = Math.min(n - 1, Math.floor(Math.random() * n));
+  return { task: tasks[index], index };
+}
+
 function dollarsToCents(n) {
   const d = Number(n);
   if (!isFinite(d) || d <= 0) return 0;
@@ -250,8 +283,41 @@ function createApp() {
     });
   }
 
+  async function humiliationSpin(req, res) {
+    const p = await requirePlayer(req, res);
+    if (!p) return;
+    const tasks = humiliationTasks();
+    if (!tasks.length) return res.status(500).json({ error: "No humiliation tasks configured." });
+    const price = HUMILIATION_PRICE_CENTS; // always $5; ignore any client-supplied price
+    const out = await store.play(p, (balance) => {
+      if (balance < price) {
+        return { error: "You need $5 in your pocket to spin this wheel.", broke: true, status: 400 };
+      }
+      const pick = pickHumiliationTask(tasks);
+      return {
+        label: pick.task.label,
+        text: pick.task.text,
+        value: 5,
+        charge: price,
+        balance: balance - price,
+        index: pick.index,
+        game: "humiliation"
+      };
+    });
+    if (out.error) {
+      const body = { error: out.error };
+      if (out.broke) { body.broke = true; body.player = out.player; }
+      return res.status(out.status || 400).json(body);
+    }
+    res.json({ ok: true, result: out.result, player: out.player });
+  }
+
   app.post("/api/pin", playHandler("poster"));
-  app.post("/api/spin", playHandler("wheel"));
+  app.post("/api/spin", wrap(async (req, res) => {
+    const requested = (req.body && req.body.game) || "wheel";
+    if (requested === "humiliation") return humiliationSpin(req, res);
+    return playHandler("wheel")(req, res);
+  }));
 
   app.post("/api/stripe/checkout", wrap(async (req, res) => {
     if (!stripeEnabled()) return res.status(400).json({ error: "Pay by card is not available." });
@@ -337,6 +403,7 @@ if (require.main === module) {
     console.log("PayPiggy listening on http://localhost:" + port);
     console.log("  Poster:    http://localhost:" + port + "/game.html");
     console.log("  Wheel:     http://localhost:" + port + "/wheel.html");
+    console.log("  Humiliation: http://localhost:" + port + "/humiliation.html");
     console.log("  Admin:     http://localhost:" + port + "/admin");
     console.log("  Analytics: http://localhost:" + port + "/admin/analytics");
     if (!pw) console.log("  WARNING: ADMIN_PASSWORD is not set. Admin login will fail.");

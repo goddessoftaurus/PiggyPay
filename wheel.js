@@ -3,18 +3,50 @@
 
   var C = window.CONFIG || {};
   var SITE = window.SITE_NAME || C.siteName || "PayPiggy";
-  var SEGS = (C.segments && C.segments.length) ? C.segments.slice() : [];
   var IS_WIDGET = document.body.classList.contains("widget");
   var BASE = IS_WIDGET ? "../" : "";
   var API = (C.apiBase || "").replace(/\/$/, "");
   var TOKEN_KEY = "paypiggy-token";
   var STORE_KEY = "paypiggy-demo-v2";
 
+  var pathName = (location.pathname || "").toLowerCase();
+  var GAME = (document.body.getAttribute("data-game") || "").toLowerCase();
+  if (GAME !== "humiliation" && GAME !== "wheel") {
+    GAME = /humiliation/.test(pathName) ? "humiliation" : "wheel";
+  }
+  var IS_HUM = GAME === "humiliation";
+
+  var DEFAULT_HUMILIATION_TASKS = [
+    { label: "Tape selfie", text: "Tape across your face, then send a selfie" },
+    { label: "One finger", text: "Jerk the tip with one finger only for 2 minutes" },
+    { label: "Sit on hands", text: "Sit on your hands until they go numb" },
+    { label: "Ice water", text: "Balls in ice water for 30 seconds" },
+    { label: "Forehead", text: "Write \"PayPiggy\" on your forehead in marker and send a selfie" },
+    { label: "Oink 20\u00d7", text: "Oink 20 times on camera" },
+    { label: "Panties", text: "Wear panties all day under your clothes" },
+    { label: "Kneel 10 min", text: "Kneel in the corner for 10 minutes" },
+    { label: "Floor meal", text: "Eat your next meal off a plate on the floor with no hands" },
+    { label: "Clothespins", text: "Wear a clothespin on each nipple for 5 minutes" }
+  ];
+
+  var HW = C.humiliationWheel || {};
+  var SEGS;
+  if (IS_HUM) {
+    var tasks = (HW.tasks && HW.tasks.length) ? HW.tasks.slice() : DEFAULT_HUMILIATION_TASKS;
+    SEGS = tasks.map(function (t) {
+      return { label: t.label || t.text, text: t.text || t.label, value: 5 };
+    });
+  } else {
+    SEGS = (C.segments && C.segments.length) ? C.segments.slice() : [];
+  }
+  var PRICE_CENTS = 500;
+
   var root = document.getElementById("paypiggy-game");
   if (!root) return;
+  if (IS_HUM) root.classList.add("wh-humiliation");
 
-  var TITLE = C.wheelTitle || "Wheel of Financial Torture";
-  document.title = SITE + " — " + TITLE;
+  var TITLE = IS_HUM ? (HW.title || "Wheel of Humiliation") : (C.wheelTitle || "Wheel of Financial Torture");
+  document.title = SITE + " \u2014 " + TITLE;
 
   var demo = true;
   var flags = { stripe: false, throne: C.ENABLE_THRONE !== false };
@@ -24,16 +56,24 @@
   var currentRot = 0;
   var player = { code: "", balance: 0, tab: 0, pins: [], loads: [], pending: [] };
 
-  var TAIL_SVG = '<svg viewBox="0 0 80 110" aria-hidden="true"><path d="M40 8 C40 8 52 36 40 50 C24 70 56 78 44 96" fill="none" stroke="#e0115f" stroke-width="10" stroke-linecap="round"/><path d="M28 0 L52 0 L40 22 Z" fill="#ffc83d" stroke="#6a0010" stroke-width="2" stroke-linejoin="round"/><circle cx="40" cy="4" r="6" fill="#e0115f" stroke="#6a0010" stroke-width="2"/></svg>';
+  var POINTER_SVG = '<svg viewBox="0 0 80 120" aria-hidden="true"><g transform="rotate(-2 40 20)"><path d="M22 4 L58 4 L70 18 L48 18 L44 108 L36 108 L32 18 L10 18 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/><path d="M24 6 L56 6 L66 17 L46 17 L42 104 L38 104 L34 17 L14 17 Z" fill="#e0115f" stroke="#6a0010" stroke-width="2.4" stroke-linejoin="round"/><path d="M40 8 C40 8 54 38 40 54 C22 76 58 84 44 100" fill="none" stroke="#ffc83d" stroke-width="6" stroke-linecap="round"/><circle cx="40" cy="8" r="7" fill="#ffc83d" stroke="#6a0010" stroke-width="2"/></g></svg>';
 
-  var PIG_SVG = '<svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="68" rx="36" ry="30" fill="#ff4d8d"/><circle cx="32" cy="42" r="14" fill="#e0115f"/><circle cx="88" cy="42" r="14" fill="#e0115f"/><circle cx="34" cy="44" r="8" fill="#ff8fb8"/><circle cx="86" cy="44" r="8" fill="#ff8fb8"/><ellipse cx="60" cy="78" rx="16" ry="12" fill="#ffd0e0"/><circle cx="54" cy="77" r="2.6" fill="#3a0810"/><circle cx="66" cy="77" r="2.6" fill="#3a0810"/><circle cx="46" cy="62" r="4.2" fill="#3a0810"/><circle cx="74" cy="62" r="4.2" fill="#3a0810"/><circle cx="47.6" cy="60.6" r="1.4" fill="#fff"/><circle cx="75.6" cy="60.6" r="1.4" fill="#fff"/></svg>';
+  var PIG_SVG = IS_HUM
+    ? '<svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="61" cy="70" rx="36" ry="29" fill="none" stroke="#6a0010" stroke-width="3" stroke-linejoin="round"/><ellipse cx="60" cy="68" rx="36" ry="29" fill="#ff6fa3"/><circle cx="31" cy="43" r="13" fill="#e0115f" stroke="#6a0010" stroke-width="2"/><circle cx="90" cy="42" r="13" fill="#e0115f" stroke="#6a0010" stroke-width="2"/><circle cx="33" cy="44" r="7.5" fill="#ffb0cc"/><circle cx="88" cy="44" r="7.5" fill="#ffb0cc"/><ellipse cx="60" cy="80" rx="16" ry="11" fill="#ffd0e0" stroke="#6a0010" stroke-width="1.6"/><circle cx="54" cy="79" r="2.4" fill="#3a0810"/><circle cx="66" cy="79" r="2.4" fill="#3a0810"/><path d="M40 58 Q46 54 52 60" fill="none" stroke="#6a0010" stroke-width="2" stroke-linecap="round"/><path d="M80 58 Q74 53 68 60" fill="none" stroke="#6a0010" stroke-width="2" stroke-linecap="round"/><circle cx="46" cy="64" r="4" fill="#3a0810"/><circle cx="75" cy="63" r="4" fill="#3a0810"/><circle cx="47.4" cy="62.6" r="1.3" fill="#fff"/><circle cx="76.4" cy="61.6" r="1.3" fill="#fff"/><path d="M96 36 Q104 28 108 40" fill="none" stroke="#6a0010" stroke-width="2" stroke-linecap="round"/><circle cx="108" cy="42" r="3.2" fill="none" stroke="#6a0010" stroke-width="1.8"/></svg>'
+    : '<svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="61" cy="70" rx="36" ry="30" fill="none" stroke="#6a0010" stroke-width="3"/><ellipse cx="60" cy="68" rx="36" ry="30" fill="#ff6fa3"/><circle cx="32" cy="43" r="13.5" fill="#e0115f" stroke="#6a0010" stroke-width="2"/><circle cx="88" cy="42" r="13.5" fill="#e0115f" stroke="#6a0010" stroke-width="2"/><circle cx="34" cy="44" r="7.5" fill="#ffb0cc"/><circle cx="86" cy="44" r="7.5" fill="#ffb0cc"/><ellipse cx="60" cy="79" rx="16" ry="12" fill="#ffd0e0" stroke="#6a0010" stroke-width="1.6"/><circle cx="54" cy="78" r="2.5" fill="#3a0810"/><circle cx="66" cy="78" r="2.5" fill="#3a0810"/><circle cx="46" cy="62" r="4" fill="#3a0810"/><circle cx="74" cy="62" r="4" fill="#3a0810"/><circle cx="47.5" cy="60.6" r="1.3" fill="#fff"/><circle cx="75.5" cy="60.6" r="1.3" fill="#fff"/></svg>';
+
+  var DOODLES = '<svg viewBox="0 0 400 400" aria-hidden="true"><path d="M28 70 q12 -18 28 -6" fill="none" stroke="#6a0010" stroke-width="2" stroke-linecap="round"/><path d="M360 90 q14 16 -6 28" fill="none" stroke="#6a0010" stroke-width="2" stroke-linecap="round"/><path d="M40 320 q20 16 36 0" fill="none" stroke="#b3001b" stroke-width="2" stroke-linecap="round"/><text x="22" y="200" fill="#6a0010" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" transform="rotate(-18 22 200)">\u2665</text><text x="372" y="250" fill="#6a0010" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" transform="rotate(16 372 250)">\u2605</text><text x="340" y="40" fill="#6a0010" font-family="Arial, Helvetica, sans-serif" font-size="16" transform="rotate(8 340 40)">\u2727</text></svg>';
+
+  var resultCaption = IS_HUM ? "Your task" : "The tail pinned on";
+  var resultLead = IS_HUM ? "Do this 🐷" : "You owe $0 🐷";
+  var payBtn = IS_HUM ? "" : '<a class="pt-pay" id="ptPay" href="#">Pay up</a>';
 
   root.innerHTML =
     '<canvas id="fx"></canvas>' +
     '<header class="pt-head"><div class="brand" id="ptBrand"></div><h1 id="ptTitle"></h1><p id="ptTag"></p></header>' +
     '<section class="pt-panel pt-gate" id="ptGate">' +
       '<h2>18+ only</h2>' +
-      '<p>This is a grown-up teasing game. Real gifts are confirmed by her — nothing on this page charges a card unless you choose Pay by card.</p>' +
+      '<p>This is a grown-up teasing game. Real gifts are confirmed by her \u2014 nothing on this page charges a card unless you choose Pay by card.</p>' +
       '<button class="pt-go" type="button" id="ptStart">I\'m 18+, let me play</button>' +
       '<div class="pt-claim"><input id="ptResume" placeholder="Played before? Enter PIG-XXXX" maxlength="12"><button class="pt-add" type="button" id="ptResumeBtn">Open</button></div>' +
     '</section>' +
@@ -43,27 +83,31 @@
         '<div class="pt-stat alt"><span>Your tab</span><b id="ptTab">$0.00</b></div>' +
         '<button class="pt-snd" type="button" id="ptSnd" aria-label="Sound off"></button>' +
       '</div>' +
-      '<div class="pt-codebar">Play code <code id="ptCode">—</code> <button type="button" id="ptCopyCode">Copy</button></div>' +
+      '<div class="pt-codebar">Play code <code id="ptCode">\u2014</code> <button type="button" id="ptCopyCode">Copy</button></div>' +
       '<div class="wh-stage" id="whStage">' +
+        '<div class="wh-doodles" aria-hidden="true">' + DOODLES + '</div>' +
         '<div class="wh-rim" aria-hidden="true"></div>' +
+        '<div class="wh-tape wh-tape-a" aria-hidden="true"></div>' +
+        '<div class="wh-tape wh-tape-b" aria-hidden="true"></div>' +
+        '<div class="wh-tape wh-tape-c" aria-hidden="true"></div>' +
         '<div class="wh-wheel" id="whWheel"></div>' +
         '<div class="wh-hub">' + PIG_SVG + '<div class="wh-sash" aria-hidden="true"></div></div>' +
-        '<div class="wh-pointer" id="whPointer">' + TAIL_SVG + '</div>' +
-        '<div class="wh-veil" id="whVeil"><div class="msg">blindfold on…</div><div class="wh-reel" id="whReel">$??</div></div>' +
+        '<div class="wh-pointer" id="whPointer">' + POINTER_SVG + '</div>' +
+        '<div class="wh-veil" id="whVeil"><div class="msg">blindfold on\u2026</div><div class="wh-reel" id="whReel">' + (IS_HUM ? "??" : "$??") + '</div></div>' +
         '<div class="wh-result" id="ptResult">' +
-          '<div class="pt-banner"><small>The tail pinned on</small><b id="ptOwe">You owe $0 🐷</b>' +
-            '<div class="row"><a class="pt-pay" id="ptPay" href="#">Pay up</a>' +
+          '<div class="pt-banner' + (IS_HUM ? " wh-task" : "") + '"><small id="ptCaption">' + resultCaption + '</small><b id="ptOwe">' + resultLead + '</b>' +
+            '<div class="row">' + payBtn +
             '<button class="pt-again" type="button" id="ptAgain">Play again</button></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<button class="pt-go" type="button" id="ptPin">Spin</button>' +
+      '<button class="pt-go" type="button" id="ptPin">' + (IS_HUM ? "Spin \u00b7 $5" : "Spin") + '</button>' +
       '<button class="pt-funds" type="button" id="ptOpenLoad">Add funds</button>' +
       '<div class="pt-pending pt-hide" id="ptPendingNote">A gift is waiting for her to confirm.</div>' +
     '</section>' +
     '<section class="pt-panel pt-hist pt-hide" id="ptHist">' +
       '<h2>Spin history</h2>' +
-      '<ol id="ptList"><li class="empty">No spins yet — add funds and spin the wheel.</li></ol>' +
+      '<ol id="ptList"><li class="empty">No spins yet \u2014 add funds and spin the wheel.</li></ol>' +
     '</section>' +
     '<section class="pt-panel pt-hist pt-hide" id="ptLoads">' +
       '<h2>What you sent</h2>' +
@@ -71,7 +115,7 @@
     '</section>' +
     '<div class="pt-over" id="ptLoadSheet">' +
       '<div class="sheet">' +
-        '<button class="pt-x" type="button" data-close aria-label="Close">×</button>' +
+        '<button class="pt-x" type="button" data-close aria-label="Close">\u00d7</button>' +
         '<h3>Add funds</h3>' +
         '<p class="sub">Add funds to your account. Your play code is <code id="ptSheetCode">PIG-XXXX</code>. She uses it to find your gift.</p>' +
         '<div class="pt-presets" id="ptPresets"></div>' +
@@ -80,57 +124,116 @@
           '<ol class="pt-steps">' +
             '<li>Copy your play code.</li>' +
             '<li>Open her Throne wishlist and paste the code in the gift note.</li>' +
-            '<li>Come back and tap “I already sent it.” Your account stays pending until she confirms.</li>' +
+            '<li>Come back and tap \u201cI already sent it.\u201d Your account stays pending until she confirms.</li>' +
           '</ol>' +
           '<div class="pt-payrow" id="ptGiftLinks"></div>' +
           '<button class="pt-sent" type="button" id="ptSent">I already sent it</button>' +
-          '<p class="pt-wait pt-hide" id="ptWait">Waiting for her to confirm that gift…</p>' +
+          '<p class="pt-wait pt-hide" id="ptWait">Waiting for her to confirm that gift\u2026</p>' +
         '</div>' +
         '<div id="ptStripeBlock" class="pt-hide" style="margin-top:14px">' +
           '<button class="pt-cardbtn" type="button" id="ptCard">Pay by card</button>' +
         '</div>' +
-        '<p class="pt-demo pt-hide" id="ptDemoNote">Demo mode — no server is connected, so confirmation is simulated on this device only.</p>' +
+        '<p class="pt-demo pt-hide" id="ptDemoNote">Demo mode \u2014 no server is connected, so confirmation is simulated on this device only.</p>' +
       '</div>' +
     '</div>';
 
   document.getElementById("ptBrand").textContent = SITE;
   document.getElementById("ptTitle").textContent = TITLE;
-  document.getElementById("ptTag").textContent = C.wheelTagline || C.tagline || "Blindfold on. The tail pins wherever the wheel stops — that's what you send.";
+  document.getElementById("ptTag").textContent = IS_HUM
+    ? (HW.tagline || "Spin it. Wherever it stops is the task you do.")
+    : (C.wheelTagline || C.tagline || "Blindfold on. The tail pins wherever the wheel stops \u2014 that's what you send.");
+
+  function hash01(n) {
+    var x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function wobbleArc(cx, cy, r, a0, a1, steps, seed) {
+    var pts = [];
+    var s;
+    for (s = 0; s <= steps; s++) {
+      var t = s / steps;
+      var a = a0 + (a1 - a0) * t;
+      var jitter = (hash01(seed * 17 + s * 3.1) - 0.5) * 5.2;
+      var rr = r + jitter;
+      pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]);
+    }
+    return pts;
+  }
+
+  function ringPath(outer, inner) {
+    var d = "M " + outer[0][0].toFixed(1) + " " + outer[0][1].toFixed(1);
+    var i;
+    for (i = 1; i < outer.length; i++) d += " L " + outer[i][0].toFixed(1) + " " + outer[i][1].toFixed(1);
+    d += " L " + inner[inner.length - 1][0].toFixed(1) + " " + inner[inner.length - 1][1].toFixed(1);
+    for (i = inner.length - 2; i >= 0; i--) d += " L " + inner[i][0].toFixed(1) + " " + inner[i][1].toFixed(1);
+    return d + " Z";
+  }
+
+  function labelLines(label) {
+    var s = String(label || "").replace(/</g, "");
+    if (s.length <= 12) return [s];
+    var mid = s.lastIndexOf(" ", Math.ceil(s.length / 2));
+    if (mid < 1) mid = s.indexOf(" ");
+    if (mid < 1) return [s];
+    return [s.slice(0, mid), s.slice(mid + 1)];
+  }
+
+  function isLight(hex) {
+    var h = String(hex || "").replace("#", "");
+    if (h.length !== 6) return false;
+    var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 170;
+  }
 
   function buildWheel() {
     var n = SEGS.length || 1;
     var slice = 360 / n;
-    var colors = ["#ff4d8d", "#e0115f", "#c01050", "#ff6fa3", "#b3001b", "#ff4d8d", "#e0115f", "#ff8fb8"];
-    var cx = 200, cy = 200, R = 196, r0 = 58;
-    var paths = "", labels = "", pegs = "";
+    var colors = IS_HUM
+      ? ["#e45a86", "#c4144a", "#f07aa0", "#b3001b", "#ef5b8c", "#d81b60", "#ff8aaa", "#a10d2e", "#e0115f", "#c73a6a"]
+      : ["#e45a86", "#c4144a", "#f07aa0", "#ff6fa3", "#b3001b", "#e45a86", "#c4144a", "#ff8fb8"];
+    var cx = 200, cy = 200, R = 194, r0 = 56;
+    var paths = "", labels = "";
     var i;
+    var defs = '<defs><filter id="whPaper" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.12  0 0 0 0 0.12  0 0 0 0.14 0"/><feBlend in="SourceGraphic" mode="multiply"/></filter></defs>';
     for (i = 0; i < n; i++) {
       var a0 = (i * slice - 90) * Math.PI / 180;
       var a1 = ((i + 1) * slice - 90) * Math.PI / 180;
-      var large = slice > 180 ? 1 : 0;
-      var x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
-      var x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
-      var ix0 = cx + r0 * Math.cos(a0), iy0 = cy + r0 * Math.sin(a0);
-      var ix1 = cx + r0 * Math.cos(a1), iy1 = cy + r0 * Math.sin(a1);
-      var d = "M " + x0 + " " + y0 + " A " + R + " " + R + " 0 " + large + " 1 " + x1 + " " + y1 +
-        " L " + ix1 + " " + iy1 + " A " + r0 + " " + r0 + " 0 " + large + " 0 " + ix0 + " " + iy0 + " Z";
+      var outer = wobbleArc(cx, cy, R, a0, a1, 7, i + 1);
+      var inner = wobbleArc(cx, cy, r0, a0, a1, 5, i + 40);
       var isAll = SEGS[i].value === "ALL" || SEGS[i].label === "ALL";
-      var fill = isAll ? "#ffc83d" : colors[i % colors.length];
-      paths += '<path d="' + d + '" fill="' + fill + '" stroke="#fff5f7" stroke-width="2.5"/>';
-      var am = ((i + 0.5) * slice - 90) * Math.PI / 180;
-      var lr = (R + r0) / 2 + 8;
+      var fill = isAll ? "#e8c56b" : colors[i % colors.length];
+      paths += '<path d="' + ringPath(outer, inner) + '" fill="' + fill + '" stroke="#6a0010" stroke-width="2.3" stroke-linejoin="round" filter="url(#whPaper)"/>';
+      var midDeg = (i + 0.5) * slice;
+      var am = (midDeg - 90) * Math.PI / 180;
+      // Money wheel: short tangential labels. Humiliation: radial, so long words stay in-slice.
+      var lr = (R + r0) / 2 + (IS_HUM ? 10 : 6);
       var lx = cx + lr * Math.cos(am);
       var ly = cy + lr * Math.sin(am);
-      var rot = (i + 0.5) * slice;
-      if (rot > 90 && rot < 270) rot += 180;
-      var textFill = isAll ? "#6a0010" : "#fff";
-      labels += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" fill="' + textFill +
-        '" font-family="Luckiest Guy, system-ui, sans-serif" font-size="28" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
-        rot.toFixed(1) + " " + lx.toFixed(1) + " " + ly.toFixed(1) + ')">' +
-        String(SEGS[i].label).replace(/</g, "") + "</text>";
+      var rot;
+      if (IS_HUM) {
+        rot = midDeg - 90 + (hash01(i + 9) - 0.5) * 3;
+        if (midDeg > 90 && midDeg < 270) rot += 180;
+      } else {
+        rot = midDeg + (hash01(i + 9) - 0.5) * 7;
+        if (rot > 90 && rot < 270) rot += 180;
+      }
+      var lines = labelLines(SEGS[i].label);
+      var long = lines.join(" ").length > 8 || lines.length > 1;
+      var fs = isAll ? 24 : (IS_HUM ? (lines.length > 1 ? 12.5 : 13.5) : (long ? 14 : 24));
+      var textFill = (isAll || isLight(fill)) ? "#3a0810" : "#fffdf8";
+      var lh = fs * 1.05;
+      var startY = ly - ((lines.length - 1) * lh) / 2;
+      labels += '<text fill="' + textFill + '" font-family="Arial, Helvetica, sans-serif" font-size="' + fs + '" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
+        rot.toFixed(1) + " " + lx.toFixed(1) + " " + ly.toFixed(1) + ')">';
+      var li;
+      for (li = 0; li < lines.length; li++) {
+        labels += '<tspan x="' + lx.toFixed(1) + '" y="' + (startY + li * lh).toFixed(1) + '">' + lines[li] + "</tspan>";
+      }
+      labels += "</text>";
     }
     document.getElementById("whWheel").innerHTML =
-      '<svg viewBox="0 0 400 400" aria-hidden="true">' + paths + labels + "</svg>";
+      '<svg viewBox="0 0 400 400" aria-hidden="true">' + defs + paths + labels + "</svg>";
   }
   buildWheel();
 
@@ -147,6 +250,7 @@
   function $(id) { return document.getElementById(id); }
   function money(cents) { return "$" + (Math.max(0, Number(cents) || 0) / 100).toFixed(2); }
   function pickAmt() { return chosenAmt; }
+  function needCents() { return IS_HUM ? PRICE_CENTS : 1; }
 
   function payUpHref(dollars) {
     var base = C.PAYMENT_URL || C.payUrl || "";
@@ -217,7 +321,7 @@
     player = p;
     $("ptPocket").textContent = money(p.balance);
     $("ptTab").textContent = money(p.tab);
-    $("ptCode").textContent = p.code || "—";
+    $("ptCode").textContent = p.code || "\u2014";
     $("ptSheetCode").textContent = p.code || "PIG-XXXX";
     $("ptPin").disabled = spinning;
     var pend = (p.pending && p.pending.length) || 0;
@@ -228,18 +332,25 @@
     reportHeight();
   }
 
+  function histLine(p) {
+    if (p.value === "ALL") return "The rest of your account";
+    if (p.game === "poster") return "Pinned " + p.label;
+    if (p.game === "humiliation") return "Task: " + (p.text || p.label);
+    return "Spun " + p.label;
+  }
+
   function renderHist() {
     var ol = $("ptList"); ol.innerHTML = "";
     var pins = player.pins || [];
     if (!pins.length) {
-      var e = document.createElement("li"); e.className = "empty"; e.textContent = "No spins yet — add funds and spin the wheel."; ol.appendChild(e); return;
+      var e = document.createElement("li"); e.className = "empty"; e.textContent = "No spins yet \u2014 add funds and spin the wheel."; ol.appendChild(e); return;
     }
     pins.slice(0, 10).forEach(function (p, i) {
       var li = document.createElement("li");
       if (p.value === "ALL") li.className = "all";
       li.innerHTML = '<span class="n">#' + (pins.length - i) + "</span><span></span><b></b>";
-      li.children[1].textContent = p.value === "ALL" ? "The rest of your account" : ((p.game === "poster" ? "Pinned " : "Spun ") + p.label);
-      li.children[2].textContent = "−" + money(p.charge);
+      li.children[1].textContent = histLine(p);
+      li.children[2].textContent = "\u2212" + money(p.charge);
       ol.appendChild(li);
     });
   }
@@ -271,6 +382,7 @@
 
   function setPayHref() {
     var a = $("ptPay");
+    if (!a) return;
     a.href = payUpHref(lastChargeDollars);
     if (IS_WIDGET) a.target = "_top";
   }
@@ -280,15 +392,15 @@
   }
   function loadDemo() {
     try {
-      var s = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
-      if (s && s.code) return s;
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
     } catch (e) {}
-    return { code: "PIG-DEMO", balance: 0, tab: 0, pins: [], loads: [], pending: [] };
+    return { code: "", balance: 0, tab: 0, pins: [], loads: [], pending: [] };
   }
   function newDemoCode() {
-    var alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", s = "PIG-";
-    for (var i = 0; i < 4; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
-    return s;
+    var a = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", s = "", i;
+    for (i = 0; i < 4; i++) s += a.charAt(Math.floor(Math.random() * a.length));
+    return "PIG-" + s;
   }
 
   function pickWeighted() {
@@ -303,6 +415,19 @@
   }
 
   function localSpin() {
+    if (IS_HUM) {
+      if (player.balance < PRICE_CENTS) return { broke: true };
+      var hi = Math.floor(Math.random() * SEGS.length);
+      if (hi >= SEGS.length) hi = SEGS.length - 1;
+      var t = SEGS[hi];
+      var hCharge = PRICE_CENTS;
+      var hResult = { label: t.label, text: t.text, value: 5, charge: hCharge, balance: player.balance - hCharge, index: hi, game: "humiliation" };
+      player.balance = hResult.balance;
+      player.tab += hCharge;
+      player.pins.unshift({ label: hResult.label, text: hResult.text, value: hResult.value, charge: hCharge, game: "humiliation", ts: Date.now() });
+      saveDemo();
+      return { result: hResult, player: player };
+    }
     if (player.balance <= 0) return { broke: true };
     var pick = pickWeighted();
     var isAll = pick.seg.value === "ALL" || pick.seg.label === "ALL";
@@ -367,6 +492,12 @@
     return dest;
   }
 
+  function brokeMessage() {
+    return IS_HUM
+      ? "You need $5 in your pocket to spin this wheel."
+      : "Your account is empty. Add funds to spin the wheel.";
+  }
+
   function runSpin(result) {
     spinning = true;
     $("ptPin").disabled = true;
@@ -418,15 +549,21 @@
       $("whStage").classList.remove("blind");
       reel.textContent = result.label;
       lastChargeDollars = result.charge / 100;
-      var banner = (result.value === "ALL")
-        ? ((C.allBanner || "You owe ALL 🐷") + (result.charge ? " — " + money(result.charge) : ""))
-        : ("You owe " + money(result.charge).replace(/\.00$/, "") + " 🐷");
-      $("ptOwe").textContent = banner;
+      if (IS_HUM) {
+        $("ptCaption").textContent = "Your task \u00b7 $5";
+        $("ptOwe").textContent = result.text || result.label;
+      } else {
+        var banner = (result.value === "ALL")
+          ? ((C.allBanner || "You owe ALL 🐷") + (result.charge ? " \u2014 " + money(result.charge) : ""))
+          : ("You owe " + money(result.charge).replace(/\.00$/, "") + " 🐷");
+        $("ptOwe").textContent = banner;
+      }
       setPayHref();
       $("ptResult").classList.add("show");
       $("ptPin").classList.add("pt-hide");
-      if (result.value === "ALL" || result.charge >= 10000) { landSound(true); confetti(); }
+      if (!IS_HUM && (result.value === "ALL" || result.charge >= 10000)) { landSound(true); confetti(); }
       else landSound(false);
+      if (IS_HUM) confetti();
       applyPlayer(player);
       spinning = false;
       reportHeight();
@@ -442,19 +579,19 @@
 
   function spinIt() {
     if (spinning) return;
-    if (player.balance <= 0) { openLoad("Your account is empty. Add funds to spin the wheel."); return; }
+    if (player.balance < needCents()) { openLoad(brokeMessage()); return; }
     if (demo) {
       var local = localSpin();
-      if (local.broke) { openLoad("Your account is empty. Add funds to spin the wheel."); return; }
+      if (local.broke) { openLoad(brokeMessage()); return; }
       applyPlayer(local.player);
       runSpin(local.result);
       return;
     }
-    api("/api/spin", { body: { game: "wheel" } }).then(function (d) {
+    api("/api/spin", { body: { game: IS_HUM ? "humiliation" : "wheel" } }).then(function (d) {
       player = d.player;
       runSpin(d.result);
     }).catch(function (err) {
-      if (err.body && err.body.broke) openLoad("Your account is empty. Add funds to spin the wheel.");
+      if (err.body && err.body.broke) openLoad((err.body && err.body.error) || brokeMessage());
       else alert(err.message || "Could not spin just now.");
     });
   }
@@ -464,7 +601,7 @@
     $("whPointer").classList.remove("pinned", "tick");
     $("whStage").classList.remove("blind");
     $("ptPin").classList.remove("pt-hide");
-    $("ptPin").disabled = player.balance <= 0;
+    $("ptPin").disabled = player.balance < needCents();
     reportHeight();
   }
 

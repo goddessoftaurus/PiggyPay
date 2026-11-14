@@ -227,7 +227,43 @@ function cookie(setCookie) {
   r = await req(port, "GET", "/api/me", { headers: auth2 });
   ok("parallel webhooks credited $15 once", r.json.player.balance === p2.balance + 1500, "balance=" + r.json.player.balance);
 
-  console.log("9. Data survives a fresh store (restart)");
+  console.log("9. Humiliation wheel: $5 debit, rejected if broke, result in task set");
+  r = await req(port, "POST", "/api/new", { body: {} });
+  const authH = { Authorization: "Bearer " + r.json.token };
+  r = await req(port, "POST", "/api/spin", { headers: authH, body: { game: "humiliation", price: 1 } });
+  ok("humiliation rejected when empty", r.status === 400 && r.json.broke, r.text);
+
+  r = await req(port, "POST", "/api/request-load", { headers: authH, body: { amount: 4 } });
+  const loadH4 = r.json.load.id;
+  r = await req(port, "POST", "/api/admin/loads/" + loadH4 + "/approve", {
+    headers: { Cookie: adminCookie }, body: { amount: 4 }
+  });
+  ok("approved $4 for humiliation broke test", r.status === 200 && r.json.player.balance === 400, r.text);
+  r = await req(port, "POST", "/api/spin", { headers: authH, body: { game: "humiliation", price: 1, charge: 100 } });
+  ok("humiliation rejected under $5", r.status === 400 && r.json.broke, r.text);
+  r = await req(port, "GET", "/api/me", { headers: authH });
+  ok("balance unchanged after rejected humiliation spin", r.json.player.balance === 400, "balance=" + (r.json && r.json.player && r.json.player.balance));
+
+  r = await req(port, "POST", "/api/request-load", { headers: authH, body: { amount: 10 } });
+  const loadH10 = r.json.load.id;
+  r = await req(port, "POST", "/api/admin/loads/" + loadH10 + "/approve", {
+    headers: { Cookie: adminCookie }, body: { amount: 10 }
+  });
+  ok("approved +$10", r.status === 200 && r.json.player.balance === 1400, r.text);
+  const beforeHum = 1400;
+  r = await req(port, "POST", "/api/spin", { headers: authH, body: { game: "humiliation", price: 1, amount: 1 } });
+  ok("humiliation spin succeeds", r.status === 200 && r.json.result && r.json.result.game === "humiliation", r.text);
+  ok("humiliation always charges $5", r.json.result.charge === 500 && r.json.result.balance === beforeHum - 500, JSON.stringify(r.json.result));
+  ok("tab includes the $5", r.json.player.tab === 500);
+  const { CONFIG } = require("../config");
+  const taskTexts = ((CONFIG.humiliationWheel && CONFIG.humiliationWheel.tasks) || []).map((t) => t.text);
+  ok("result text is in the configured task set", taskTexts.includes(r.json.result.text), "text=" + (r.json.result && r.json.result.text));
+  ok("result index in range", Number.isInteger(r.json.result.index) && r.json.result.index >= 0 && r.json.result.index < taskTexts.length, String(r.json.result.index));
+  ok("pin record tagged humiliation", r.json.player.pins[0].game === "humiliation" && r.json.player.pins[0].text === r.json.result.text);
+  r = await req(port, "GET", "/api/admin/stats", { headers: { Cookie: adminCookie } });
+  ok("analytics counts humiliation spend", r.json.games && r.json.games.humiliation && r.json.games.humiliation.count === 1 && r.json.games.humiliation.amount === 500, JSON.stringify(r.json.games && r.json.games.humiliation));
+
+  console.log("10. Data survives a fresh store (restart)");
   const before = await store.findByCode(code2);
   delete require.cache[require.resolve("./store")];
   const store2 = require("./store");

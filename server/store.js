@@ -357,6 +357,11 @@ function markEvent(eventId) {
   return mutate((db) => { db.events[eventId] = Date.now(); return true; });
 }
 
+function pinGame(game) {
+  if (game === "wheel" || game === "humiliation" || game === "poster") return game;
+  return "poster";
+}
+
 function applyPin(p, result) {
   // Re-check against the balance read under the lock: never charge more than is there.
   const charge = Math.max(0, Math.min(Math.round(Number(result.charge) || 0), p.balance));
@@ -364,14 +369,16 @@ function applyPin(p, result) {
   result.balance = p.balance - charge;
   p.balance = result.balance;
   p.tab = (p.tab || 0) + charge;
-  const game = result.game === "wheel" ? "wheel" : "poster";
-  p.pins.unshift({
+  const game = pinGame(result.game);
+  const rec = {
     label: result.label,
     value: result.value,
     charge,
     game,
     ts: Date.now()
-  });
+  };
+  if (result.text) rec.text = result.text;
+  p.pins.unshift(rec);
   if (p.pins.length > 40) p.pins.length = 40;
 }
 
@@ -397,7 +404,11 @@ function play(player, decide) {
     if (!p) return { error: "No player session.", status: 401 };
     if (!(p.balance > 0)) return { error: "Add funds to your account first.", broke: true, status: 400, player: pub(db, p) };
     const result = decide(p.balance);
-    if (!result || result.error) return Object.assign({ status: 500 }, result || { error: "No result." });
+    if (!result || result.error) {
+      const out = Object.assign({ status: 500 }, result || { error: "No result." });
+      if (out.broke && !out.player) out.player = pub(db, p);
+      return out;
+    }
     applyPin(p, result);
     return { ok: true, result, player: pub(db, p) };
   });
@@ -438,7 +449,7 @@ function sumWindow(sales, from) {
 function computeStats(db, goalDollars) {
   const goal = Math.max(100, Math.round((Number(goalDollars) || 1000) * 100));
   const sales = [];
-  const games = { poster: { count: 0, amount: 0 }, wheel: { count: 0, amount: 0 } };
+  const games = { poster: { count: 0, amount: 0 }, wheel: { count: 0, amount: 0 }, humiliation: { count: 0, amount: 0 } };
   for (const p of Object.values(db.players)) {
     for (const l of p.loads || []) {
       if (l.status === "approved" && (l.amount || 0) > 0) {
@@ -452,7 +463,8 @@ function computeStats(db, goalDollars) {
       }
     }
     for (const pin of p.pins || []) {
-      const g = pin.game === "wheel" ? "wheel" : "poster";
+      const g = pinGame(pin.game);
+      if (!games[g]) games[g] = { count: 0, amount: 0 };
       games[g].count += 1;
       games[g].amount += pin.charge || 0;
     }

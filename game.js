@@ -23,14 +23,23 @@
   var lastChargeDollars = 0;
   var player = { code: "", balance: 0, tab: 0, pins: [], loads: [], pending: [] };
 
-  /* Money-chip targets around the pig's rump (percent of the poster). */
+  /* Landing points on the bullseye (percent of the poster).
+     Index matches CONFIG.segments: low values sit on the outer rings / just
+     off the target, high values sit toward the center, ALL is the bullseye. */
   var SPOTS = [
-    { x: 76, y: 40 }, { x: 84, y: 46 }, { x: 68, y: 42 },
-    { x: 80, y: 53 }, { x: 88, y: 55 }, { x: 72, y: 55 },
-    { x: 78, y: 34 }, { x: 64, y: 50 }, { x: 86, y: 62 }
+    { x: 79.9, y: 65.8 }, /* $5  miss, just off the outer ring */
+    { x: 59.1, y: 56.3 }, /* $10 outer ring */
+    { x: 65.5, y: 66.3 }, /* $20 outer ring */
+    { x: 75.3, y: 55.1 }, /* $25 mid ring */
+    { x: 76.2, y: 61.5 }, /* $50 mid ring */
+    { x: 63.8, y: 60.8 }, /* $69 inner ring */
+    { x: 67.1, y: 55.1 }, /* $100 inner ring */
+    { x: 70.2, y: 61.4 }, /* $200 inner white */
+    { x: 69.0, y: 59.0 }  /* ALL center */
   ];
 
-  var TAIL_SVG = '<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M16 66 C16 42 46 40 46 54 C46 68 20 66 24 52 C28 38 58 40 58 20" fill="none" stroke="#e0115f" stroke-width="8" stroke-linecap="round"/><path d="M58 4 L62 28 L50 28 Z" fill="#ffc83d" stroke="#6a0010" stroke-width="2" stroke-linejoin="round"/><circle cx="58" cy="6" r="6" fill="#e0115f" stroke="#6a0010" stroke-width="2"/></svg>';
+  var TAIL_SVG = '<svg viewBox="0 0 100 80" aria-hidden="true"><path d="M10 50 C26 48 38 34 56 30 C76 25 92 38 86 56 C81 68 66 70 60 58 C56 48 68 46 78 52" fill="none" stroke="#1a0a08" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 50 C26 48 38 34 56 30 C76 25 92 38 86 56 C81 68 66 70 60 58 C56 48 68 46 78 52" fill="none" stroke="#ff9eb8" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 47 C30 44 42 34 56 32" fill="none" stroke="#ffc5d4" stroke-width="3.5" stroke-linecap="round"/></svg>';
+  var FLY_SVG = '<svg viewBox="-20 -18 140 116" aria-hidden="true"><path d="M10 50 C26 48 38 34 56 30 C76 25 92 38 86 56 C81 68 66 70 60 58 C56 48 68 46 78 52" fill="none" stroke="#1a0a08" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 50 C26 48 38 34 56 30 C76 25 92 38 86 56 C81 68 66 70 60 58 C56 48 68 46 78 52" fill="none" stroke="#ff9eb8" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 47 C30 44 42 34 56 32" fill="none" stroke="#ffc5d4" stroke-width="3" stroke-linecap="round"/></svg>';
 
   /* ---------- markup ---------- */
   root.innerHTML =
@@ -52,16 +61,16 @@
       '<div class="pt-poster" id="ptPoster">' +
         '<img class="farm" alt="" id="ptFarm">' +
         '<div class="pt-sign"><b id="ptSignName"></b><small id="ptSignSub"></small></div>' +
-        '<div class="pt-pig"><img alt="A cute cartoon pig waiting for a tail" id="ptPigImg"><div class="pt-sash" aria-hidden="true"></div></div>' +
+        '<div class="pt-pig"><img alt="A cartoon pig in a pen with a bullseye on its rear" id="ptPigImg"><div class="pt-sash" aria-hidden="true"></div></div>' +
         '<div id="ptSpots"></div>' +
         '<div class="pt-tray" id="ptTray" aria-label="Pick a curly tail"></div>' +
-        '<div class="pt-fly" id="ptFly">' + TAIL_SVG + '</div>' +
+        '<div class="pt-fly" id="ptFly">' + FLY_SVG + '</div>' +
         '<div class="pt-veil" id="ptVeil"><div class="msg">blindfold on…</div><div class="pt-reel" id="ptReel">$??</div></div>' +
-        '<div class="pt-result" id="ptResult">' +
-          '<div class="pt-banner"><small>The tail landed on</small><b id="ptOwe">You owe $0 🐷</b>' +
-            '<div class="row"><a class="pt-pay" id="ptPay" href="#">Pay up</a>' +
-            '<button class="pt-again" type="button" id="ptAgain">Play again</button></div>' +
-          '</div>' +
+      '</div>' +
+      '<div class="pt-result" id="ptResult">' +
+        '<div class="pt-banner"><small>The tail landed on</small><b id="ptOwe">You owe $0 🐷</b>' +
+          '<div class="row"><a class="pt-pay" id="ptPay" href="#">Pay up</a>' +
+          '<button class="pt-again" type="button" id="ptAgain">Play again</button></div>' +
         '</div>' +
       '</div>' +
       '<button class="pt-go" type="button" id="ptPin">Pin it</button>' +
@@ -105,23 +114,11 @@
   document.getElementById("ptTag").textContent = C.tagline || "Blindfold on. Wherever the tail lands is what you send.";
   document.getElementById("ptSignName").textContent = SITE;
   document.getElementById("ptSignSub").textContent = C.gameTitle || "Pin the Tail on the Pig";
-  document.getElementById("ptFarm").src = BASE + "assets/farm.jpg";
+  document.getElementById("ptFarm").src = BASE + "assets/pigpen.jpg";
   document.getElementById("ptPigImg").src = BASE + "assets/pig.png";
 
+  /* Pin targets are the bullseye rings on the pig art — no ? chips. */
   var spotsEl = document.getElementById("ptSpots");
-  SEGS.forEach(function (seg, i) {
-    var s = SPOTS[i] || { x: 70, y: 50 + i * 3 };
-    var el = document.createElement("button");
-    el.type = "button";
-    el.className = "pt-chip";
-    el.style.left = s.x + "%";
-    el.style.top = s.y + "%";
-    el.innerHTML = '<span class="q">?</span><span class="face"></span>';
-    el.querySelector(".face").textContent = seg.label;
-    el.setAttribute("data-i", String(i));
-    el.setAttribute("aria-label", "Hidden money spot");
-    spotsEl.appendChild(el);
-  });
 
   var tray = document.getElementById("ptTray");
   for (var t = 0; t < 5; t++) {

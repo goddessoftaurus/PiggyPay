@@ -1,6 +1,6 @@
 # PayPiggy — Pin the Tail on the Pig & Wheel of Financial Torture
 
-A pink-and-red “pin the tail” site for a findom creator’s link page. Players **add funds to their account**, then play either the poster game or the original casino-wheel game. Wherever the tail lands is what they owe.
+A pink-and-red “pin the tail” site for a findom creator’s link page. Players **add funds to their account**, then play the poster game, the Wheel of Financial Torture, or the Wheel of Humiliation ($5 a spin). Wherever the tail or wheel lands is what they owe — or the task they do.
 
 Rename the whole site by changing `SITE_NAME` at the top of `config.js`.
 
@@ -18,20 +18,21 @@ Then open:
 
 - Poster game: http://localhost:3000/game.html
 - Wheel of Financial Torture: http://localhost:3000/wheel.html
+- Wheel of Humiliation: http://localhost:3000/humiliation.html
 - Links: http://localhost:3000/index.html
 - Admin desk (you only): http://localhost:3000/admin
 - Sales analytics (you only): http://localhost:3000/admin/analytics
 - Embed demo: http://localhost:3000/embed-demo.html
 
-`npm test` runs an end-to-end check: create a player, request a Throne-style add-funds gift, approve it in admin, pin (server-side roll deducts the account), credit the same player with a **mocked** Stripe webhook (signed with a dummy secret — no real Stripe keys needed), spin the wheel (also server-side), and check that `/api/admin/stats` sums Throne + Stripe sales and per-game pins/spins.
+`npm test` runs an end-to-end check: create a player, request a Throne-style add-funds gift, approve it in admin, pin (server-side roll deducts the account), credit the same player with a **mocked** Stripe webhook (signed with a dummy secret — no real Stripe keys needed), spin the money wheel and the $5 humiliation wheel (also server-side), and check that `/api/admin/stats` sums Throne + Stripe sales and per-game pins/spins.
 
 ### Static demo (no server)
 
-Open `game.html` or `wheel.html` from any static host (or a simple file server). If `/api/health` is not reachable, the game runs in **demo mode**: “I already sent it” credits the account locally after a short pause so you can try the animation without deploying. Demo funds are not real.
+Open `game.html`, `wheel.html`, or `humiliation.html` from any static host (or a simple file server). If `/api/health` is not reachable, the game runs in **demo mode**: “I already sent it” credits the account locally after a short pause so you can try the animation without deploying. Demo funds are not real.
 
 ## How funding works
 
-Every player gets a short play code like `PIG-7K2Q`. They add funds to their account with Throne (you approve it in `/admin`) or, optionally, Pay by card (Stripe). Pins and spins are decided **on the server** and deduct the landed amount from the account. `ALL` takes whatever is left. A player with $0 cannot pin or spin until they add funds.
+Every player gets a short play code like `PIG-7K2Q`. They add funds to their account with Throne (you approve it in `/admin`) or, optionally, Pay by card (Stripe). Pins and spins are decided **on the server** and deduct the landed amount from the account. `ALL` takes whatever is left. The humiliation wheel always costs $5 (enforced on the server) and lands on a task. A player with $0 cannot pin or spin until they add funds; the humiliation wheel also rejects a pocket under $5.
 
 ### Throne (primary)
 
@@ -112,7 +113,7 @@ Sign in at `/admin/analytics` with the same `ADMIN_PASSWORD`. The page shows:
 - Total approved/credited funds (approved Throne gifts + Stripe payments)
 - Number of sales, plus totals for today, the last 7 days, and the last 30 days (today uses America/New_York)
 - Breakdown by method (Throne vs Stripe)
-- Total pinned / spun amounts for the poster game and the wheel
+- Total pinned / spun amounts for the poster game, the money wheel, and the humiliation wheel
 - A recent sales list
 - A big animated ring that fills toward `SALES_GOAL` in `config.js` (default `$1,000`). It shows `$X / $1,000` and the percent, and celebrates when the goal is reached.
 
@@ -129,6 +130,13 @@ Wheel of Financial Torture widget:
 
 ```html
 <div id="paypiggy-wheel" data-src="https://YOUR-HOST/widget/wheel.html"></div>
+<script src="https://YOUR-HOST/widget/embed.js"></script>
+```
+
+Wheel of Humiliation widget:
+
+```html
+<div id="paypiggy-humiliation" data-src="https://YOUR-HOST/widget/humiliation.html"></div>
 <script src="https://YOUR-HOST/widget/embed.js"></script>
 ```
 
@@ -155,3 +163,4 @@ Keep `widget/`, `assets/`, `config.js`, `game.js`, `wheel.js`, and the CSS files
 - `ENABLE_THRONE` / `ENABLE_STRIPE`
 - `SALES_GOAL` (analytics ring, dollars, default 1000)
 - Money spots and weights in `segments`
+- Humiliation tasks and title in `humiliationWheel` (price is always $5 on the server)

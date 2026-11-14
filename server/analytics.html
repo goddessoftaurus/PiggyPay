@@ -53,6 +53,7 @@
     .fill.stripe{background:linear-gradient(90deg,#8b85ff,#635bff)}
     .fill.poster{background:linear-gradient(90deg,#ff8fb8,var(--pink))}
     .fill.wheel{background:linear-gradient(90deg,var(--gold),#e0a000)}
+    .fill.humiliation{background:linear-gradient(90deg,#c01050,#7a0018)}
     table{width:100%;border-collapse:collapse;font-size:14px}
     th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #ffd0e0}
     th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;opacity:.7}
@@ -220,12 +221,14 @@
         '<div class="muted" style="margin:-6px 0 0 98px">' + ((m.stripe && m.stripe.count) || 0) + " card payments</div>";
 
       const g = s.games || {};
-      const gTotal = (g.poster && g.poster.amount || 0) + (g.wheel && g.wheel.amount || 0) || 1;
+      const gTotal = (g.poster && g.poster.amount || 0) + (g.wheel && g.wheel.amount || 0) + (g.humiliation && g.humiliation.amount || 0) || 1;
       $("gameBars").innerHTML =
         barRow("Poster pins", g.poster && g.poster.amount || 0, gTotal, "poster") +
         '<div class="muted" style="margin:-6px 0 4px 98px">' + ((g.poster && g.poster.count) || 0) + " pins</div>" +
         barRow("Wheel of Financial Torture", g.wheel && g.wheel.amount || 0, gTotal, "wheel") +
-        '<div class="muted" style="margin:-6px 0 0 98px">' + ((g.wheel && g.wheel.count) || 0) + " spins</div>";
+        '<div class="muted" style="margin:-6px 0 4px 98px">' + ((g.wheel && g.wheel.count) || 0) + " spins</div>" +
+        barRow("Wheel of Humiliation", g.humiliation && g.humiliation.amount || 0, gTotal, "humiliation") +
+        '<div class="muted" style="margin:-6px 0 0 98px">' + ((g.humiliation && g.humiliation.count) || 0) + " spins</div>";
 
       const rows = (s.recentSales || []);
       if (!rows.length) $("recentBox").innerHTML = '<p class="empty">No sales yet.</p>';

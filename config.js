@@ -27,7 +27,8 @@ const CONFIG = {
     { type: "link", label: "CashApp",  href: "#YOUR_CASHAPP_URL",  icon: "cashapp" },
     { type: "link", label: "LoyalFans",href: "#YOUR_LOYALFANS_URL",icon: "loyalfans" },
     { type: "game", label: "Pin the Tail", href: "game.html",  sub: "The poster 🐷",        icon: "pig" },
-    { type: "game", label: "Wheel of Financial Torture", href: "wheel.html", sub: "Spin the wheel 🎡",  icon: "wheel" }
+    { type: "game", label: "Wheel of Financial Torture", href: "wheel.html", sub: "Spin the wheel 🎡",  icon: "wheel" },
+    { type: "game", label: "Wheel of Humiliation", href: "humiliation.html", sub: "$5 a spin 😈", icon: "wheel" }
   ],
   socials: [
     { label: "X / Twitter", href: "#YOUR_TWITTER_URL", icon: "x" },
@@ -46,7 +47,8 @@ const CONFIG = {
   tagline: "Blindfold on. Wherever the tail lands is what you send.",
   wheelTagline: "Spin it. Wherever it stops is what you send.",
 
-  /* Money spots around the pig. `weight` is the relative chance (higher = more likely).
+  /* Pin outcomes, mapped to bullseye rings (center = ALL, outer / miss = lower).
+     `weight` is the relative chance (higher = more likely).
      `value: "ALL"` takes whatever is left in the player's pocket. */
   segments: [
     { label: "$5",   value: 5,    weight: 22 },
@@ -62,6 +64,25 @@ const CONFIG = {
 
   allBanner: "You owe ALL 🐷",
 
+
+  /* ----- Wheel of Humiliation (femdom tasks; $5 a spin, enforced on the server) ----- */
+  humiliationWheel: {
+    title: "Wheel of Humiliation",
+    tagline: "Spin it. Wherever it stops is the task you do.",
+    price: 5,
+    tasks: [
+      { label: "Tape selfie", text: "Tape across your face, then send a selfie" },
+      { label: "One finger", text: "Jerk the tip with one finger only for 2 minutes" },
+      { label: "Sit on hands", text: "Sit on your hands until they go numb" },
+      { label: "Ice water", text: "Balls in ice water for 30 seconds" },
+      { label: "Forehead", text: "Write \"PayPiggy\" on your forehead in marker and send a selfie" },
+      { label: "Oink 20×", text: "Oink 20 times on camera" },
+      { label: "Panties", text: "Wear panties all day under your clothes" },
+      { label: "Kneel 10 min", text: "Kneel in the corner for 10 minutes" },
+      { label: "Floor meal", text: "Eat your next meal off a plate on the floor with no hands" },
+      { label: "Clothespins", text: "Wear a clothespin on each nipple for 5 minutes" }
+    ]
+  },
   /* Pay up opens this URL with ?amount=<landed dollars> appended.
      Leave empty to fall back to the crypto section on the links page. */
   PAYMENT_URL: "",
