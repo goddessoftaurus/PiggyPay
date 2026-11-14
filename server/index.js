@@ -8,6 +8,7 @@ const express = require("express");
 const store = require("./store");
 const stripePay = require("./stripe");
 const throne = require("./throne");
+const pinZones = require("../pin-zones");
 const { CONFIG, SITE_NAME } = require("../config");
 
 const ROOT = path.join(__dirname, "..");
@@ -121,12 +122,21 @@ function pickSegment(segs) {
 function resolvePin(seg, balance) {
   const isAll = seg.value === "ALL" || seg.label === "ALL";
   const charge = isAll ? balance : Math.min(Math.round(Number(seg.value) * 100), balance);
-  return {
+  const out = {
     label: seg.label,
     value: isAll ? "ALL" : seg.value,
     charge,
     balance: Math.max(0, balance - charge)
   };
+  if (seg.zone) {
+    out.zone = seg.zone;
+    out.zoneLabel = seg.zoneLabel || (pinZones.ZONE_BANNERS && pinZones.ZONE_BANNERS[seg.zone]) || "";
+  }
+  return out;
+}
+
+function posterTiers() {
+  return pinZones.buildPinTiers(CONFIG);
 }
 
 
@@ -279,10 +289,10 @@ function createApp() {
     return wrap(async (req, res) => {
       const p = await requirePlayer(req, res);
       if (!p) return;
-      const segs = CONFIG.segments || [];
-      if (!segs.length) return res.status(500).json({ error: "No segments configured." });
       const requested = (req.body && req.body.game) || defaultGame;
       const game = requested === "wheel" ? "wheel" : "poster";
+      const segs = game === "poster" ? posterTiers() : (CONFIG.segments || []);
+      if (!segs.length) return res.status(500).json({ error: "No segments configured." });
       // The pick and the charge are made against the balance read while the
       // player's data is locked, so parallel spins can't overspend.
       const out = await store.play(p, (balance) => {
@@ -476,4 +486,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp, loadEnv, applyStripeCredit, pickSegment, resolvePin, store, stripePay, publicUrl, rootPageTarget };
+module.exports = { createApp, loadEnv, applyStripeCredit, pickSegment, resolvePin, posterTiers, pinZones, store, stripePay, publicUrl, rootPageTarget };

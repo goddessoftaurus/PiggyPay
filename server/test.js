@@ -113,6 +113,7 @@ function cookie(setCookie) {
   console.log("4. Server-side pin deducts from pocket");
   r = await req(port, "POST", "/api/pin", { headers: auth, body: {} });
   ok("pin succeeds", r.status === 200 && r.json.result, r.text);
+  ok("first pin includes a zone", r.json.result.zone && r.json.result.zoneLabel, JSON.stringify(r.json.result));
   const charge = r.json.result.charge;
   const left = r.json.result.balance;
   ok("charge is positive and deducted", charge > 0 && left === 5000 - charge, JSON.stringify(r.json.result));
@@ -405,6 +406,101 @@ function cookie(setCookie) {
     ok(file + " back links go to Linktree in the same tab", allLinktree && !leftover && !blank,
       "backs=" + backs.join(" | ") + " leftover=" + leftover);
   }
+
+  console.log("13. Pin zones, Pay up pop-up, and wheel flick");
+  const pin = require("../pin-zones");
+  const flick = require("../wheel-flick");
+
+  const tiers = pin.buildPinTiers(CONFIG);
+  ok("pin tiers reuse configured amounts", tiers.length === CONFIG.segments.length, "n=" + tiers.length);
+  ok("lowest pin amount is the bullseye", tiers[0].zone === "bullseye" && Number(tiers[0].value) === 5, JSON.stringify(tiers[0]));
+  ok("highest pin amount is a miss", tiers[tiers.length - 1].zone === "miss" && tiers[tiers.length - 1].value === "ALL", JSON.stringify(tiers[tiers.length - 1]));
+  const zoneNames = tiers.map((s) => s.zone);
+  ok("pin tiers include inner, mid, and outer rings", ["inner", "mid", "outer"].every((z) => zoneNames.includes(z)), zoneNames.join(","));
+  const weightOf = (z) => tiers.filter((s) => s.zone === z).reduce((a, s) => a + s.weight, 0);
+  ok("bullseye is rarer than a miss", weightOf("bullseye") < weightOf("miss"), "bull=" + weightOf("bullseye") + " miss=" + weightOf("miss"));
+  ok("auto-mapping still works without pinZone fields", pin.buildPinTiers({
+    segments: [{ label: "$5", value: 5, weight: 22 }, { label: "$50", value: 50, weight: 10 }, { label: "ALL", value: "ALL", weight: 4 }]
+  }).map((s) => s.zone).join(",") === "bullseye,mid,miss");
+
+  const target = pin.TARGET;
+  let bullOk = true;
+  let missFar = false;
+  for (let i = 0; i < 40; i++) {
+    const pt = pin.pointInZone("bullseye");
+    const nx = (pt.x - target.cx) / target.rx;
+    const ny = (pt.y - target.cy) / target.ry;
+    if (Math.sqrt(nx * nx + ny * ny) > target.rings.bullseye[1] + 0.02) bullOk = false;
+  }
+  for (let i = 0; i < 40; i++) {
+    const pt = pin.pointInZone("miss");
+    const nx = (pt.x - target.cx) / target.rx;
+    const ny = (pt.y - target.cy) / target.ry;
+    if (Math.sqrt(nx * nx + ny * ny) > 1.0) missFar = true;
+  }
+  ok("bullseye points sit inside the center ring", bullOk);
+  ok("some miss points land outside the painted target", missFar);
+
+  r = await req(port, "POST", "/api/new", { body: {} });
+  const zoneAuth = { Authorization: "Bearer " + r.json.token };
+  r = await req(port, "POST", "/api/request-load", { headers: zoneAuth, body: { amount: 500 } });
+  ok("zone-test player requested $500", r.status === 200 && r.json.load, r.text);
+  const zoneLoadId = r.json.load.id;
+  r = await req(port, "POST", "/api/admin/loads/" + zoneLoadId + "/approve", {
+    headers: { Cookie: adminCookie }, body: { amount: 500 }
+  });
+  ok("zone-test funds approved", r.status === 200 && r.json.player && r.json.player.balance === 50000, r.text);
+
+  const pinResults = [];
+  for (let i = 0; i < 40; i++) {
+    const pr = await req(port, "POST", "/api/pin", { headers: zoneAuth, body: { game: "poster" } });
+    if (pr.status !== 200) break;
+    pinResults.push(pr.json.result);
+    if (pr.json.player.balance <= 0) break;
+  }
+  ok("server pins return a zone", pinResults.length > 0 && pinResults.every((x) => x.zone && x.zoneLabel && x.game === "poster"), JSON.stringify(pinResults[0]));
+  ok("pins land in more than one zone over many throws", new Set(pinResults.map((x) => x.zone)).size >= 2, pinResults.map((x) => x.zone + ":" + x.label).join(", "));
+  const bullCharge = pinResults.find((x) => x.zone === "bullseye");
+  const missCharge = pinResults.find((x) => x.zone === "miss");
+  if (bullCharge && missCharge) {
+    ok("bullseye charges less than a miss", bullCharge.charge < missCharge.charge, "bull=" + bullCharge.charge + " miss=" + missCharge.charge);
+  } else {
+    const bullTier = tiers.find((s) => s.zone === "bullseye");
+    const missTier = tiers.find((s) => s.zone === "miss" && s.value !== "ALL") || tiers.find((s) => s.zone === "miss");
+    ok("configured bullseye amount is lower than a miss", pin.amountKey(bullTier) < pin.amountKey(missTier));
+  }
+  ok("zone labels match the banners", pinResults.every((x) => x.zoneLabel === pin.ZONE_BANNERS[x.zone]), pinResults.map((x) => x.zoneLabel).join(" | "));
+
+  ok("tiny flicks do not start a spin", flick.shouldSpin(0.05) === false);
+  ok("a firm flick starts a spin", flick.shouldSpin(0.3) === true);
+  ok("faster flicks spin longer", flick.durationFromVelocity(1.2, false) > flick.durationFromVelocity(0.2, false));
+  const fwd = flick.targetRotation(0, 0, 9, 1, 6);
+  const back = flick.targetRotation(0, 0, 9, -1, 6);
+  ok("flick direction changes the spin way", fwd > 0 && back < 0, "fwd=" + fwd + " back=" + back);
+  const landing0 = (360 - 20) % 360;
+  const norm = (n) => ((n % 360) + 360) % 360;
+  ok("flick landing stays on the chosen slice", Math.abs(norm(fwd) - landing0) < 0.01 && Math.abs(norm(back) - landing0) < 0.01, "fwd=" + norm(fwd) + " back=" + norm(back) + " want=" + landing0);
+
+  const gameJs = fs.readFileSync(path.join(__dirname, "..", "game.js"), "utf8");
+  const wheelJs = fs.readFileSync(path.join(__dirname, "..", "wheel.js"), "utf8");
+  ok("Pay up opens an in-page sheet with Throne and card options",
+    gameJs.includes('id="ptPay">Pay up</button>') &&
+    gameJs.includes("function openPayUp") &&
+    gameJs.includes("Pay via Throne") &&
+    gameJs.includes("Card payments coming soon") &&
+    gameJs.includes("no real payment") &&
+    !gameJs.includes("index.html#crypto"));
+  ok("wheels share the same Pay up sheet and flick-to-spin",
+    wheelJs.includes("function openPayUp") &&
+    wheelJs.includes("Pay via Throne") &&
+    wheelJs.includes("Card payments coming soon") &&
+    wheelJs.includes("no real payment") &&
+    wheelJs.includes("Swipe the wheel or tap Spin") &&
+    wheelJs.includes("bindFlick") &&
+    wheelJs.includes("PayPiggyFlick"));
+  const servedFlick = await req(port, "GET", "/wheel-flick.js");
+  const servedPin = await req(port, "GET", "/pin-zones.js");
+  ok("flick and pin helpers are served as static files", servedFlick.status === 200 && servedPin.status === 200 && servedFlick.text.includes("shouldSpin") && servedPin.text.includes("buildPinTiers"));
 
   server.close();
   await store.close();

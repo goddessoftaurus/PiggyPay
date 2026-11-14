@@ -72,7 +72,7 @@
 
   var resultCaption = IS_HUM ? "Your task" : "The tail pinned on";
   var resultLead = IS_HUM ? "Do this 🐷" : "You owe $0 🐷";
-  var payBtn = IS_HUM ? "" : '<a class="pt-pay" id="ptPay" href="#">Pay up</a>';
+  var payBtn = IS_HUM ? "" : '<button class="pt-pay" type="button" id="ptPay">Pay up</button>';
 
   root.innerHTML =
     '<div class="pt-test-ribbon pt-hide" id="ptTestRibbon" role="status">TEST MODE — play money</div>' +
@@ -108,6 +108,7 @@
           '</div>' +
         '</div>' +
       '</div>' +
+      '<p class="wh-hint" id="whHint">Swipe the wheel or tap Spin</p>' +
       '<button class="pt-go" type="button" id="ptPin">' + (IS_HUM ? "Spin \u00b7 $5" : "Spin") + '</button>' +
       '<button class="pt-funds" type="button" id="ptOpenLoad">Add funds</button>' +
       '<div class="pt-pending pt-hide" id="ptPendingNote">A gift is waiting for her to confirm.</div>' +
@@ -123,23 +124,28 @@
     '<div class="pt-over" id="ptLoadSheet">' +
       '<div class="sheet">' +
         '<button class="pt-x" type="button" data-close aria-label="Close">\u00d7</button>' +
-        '<h3>Add funds</h3>' +
-        '<p class="sub">Add funds to your account. Your play code is <code id="ptSheetCode">PIG-XXXX</code>. She uses it to find your gift.</p>' +
+        '<h3 id="ptSheetTitle">Add funds</h3>' +
+        '<p class="pt-due pt-hide" id="ptDue">You owe <b id="ptDueAmt">$0</b></p>' +
+        '<p class="sub" id="ptSheetSub">Add funds to your account. Your play code is <code id="ptSheetCode">PIG-XXXX</code>. She uses it to find your gift.</p>' +
         '<div class="pt-presets" id="ptPresets"></div>' +
-        '<div class="pt-custom"><input id="ptCustom" type="number" min="1" step="1" placeholder="custom $"><button class="pt-add" type="button" id="ptUseCustom">Use</button></div>' +
+        '<div class="pt-custom" id="ptCustomRow"><input id="ptCustom" type="number" min="1" step="1" placeholder="custom $"><button class="pt-add" type="button" id="ptUseCustom">Use</button></div>' +
         '<div id="ptThroneBlock">' +
           '<ol class="pt-steps">' +
             '<li>Copy your play code.</li>' +
             '<li>Open her Throne wishlist and paste the code in the gift note.</li>' +
             '<li>Come back and tap \u201cI already sent it.\u201d Your account stays pending until she confirms.</li>' +
           '</ol>' +
+          '<div class="pt-payrow">' +
+            '<button class="pt-thronebtn" type="button" id="ptThronePay">Pay via Throne</button>' +
+          '</div>' +
           '<div class="pt-payrow" id="ptGiftLinks"></div>' +
           '<button class="pt-sent" type="button" id="ptSent">I already sent it</button>' +
           '<p class="pt-wait pt-hide" id="ptWait">Waiting for her to confirm that gift\u2026</p>' +
         '</div>' +
-        '<div id="ptStripeBlock" class="pt-hide" style="margin-top:14px">' +
+        '<div id="ptStripeBlock" style="margin-top:14px">' +
           '<button class="pt-cardbtn" type="button" id="ptCard">Pay by card</button>' +
         '</div>' +
+        '<p class="pt-testpay pt-hide" id="ptTestPayNote">Test mode \u2014 no real payment</p>' +
         '<p class="pt-demo pt-hide" id="ptDemoNote">Demo mode \u2014 no server is connected, so confirmation is simulated on this device only.</p>' +
       '</div>' +
     '</div>';
@@ -259,16 +265,15 @@
   function pickAmt() { return chosenAmt; }
   function needCents() { return IS_HUM ? PRICE_CENTS : 1; }
 
-  function payUpHref(dollars) {
-    var base = C.PAYMENT_URL || C.payUrl || "";
-    if (base) {
-      try {
-        var u = new URL(base, location.href);
-        if (dollars != null && dollars !== "ALL") u.searchParams.set("amount", String(dollars));
-        return u.toString();
-      } catch (e) { return base; }
-    }
-    return (IS_WIDGET ? "../index.html#crypto" : "index.html#crypto");
+  function throneHref(dollars) {
+    var base = C.THRONE_URL || findLink("Throne") || "https://throne.com/goddessoftaurus";
+    try {
+      var u = new URL(base, location.href);
+      if (dollars != null && dollars !== "" && dollars !== "ALL" && Number(dollars) > 0) {
+        u.searchParams.set("amount", String(dollars));
+      }
+      return u.toString();
+    } catch (e) { return base; }
   }
 
   function token() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
@@ -394,8 +399,7 @@
   function setPayHref() {
     var a = $("ptPay");
     if (!a) return;
-    a.href = payUpHref(lastChargeDollars);
-    if (IS_WIDGET) a.target = "_top";
+    a.setAttribute("data-amount", lastChargeDollars ? String(lastChargeDollars) : "");
   }
 
   function saveDemo() {
@@ -490,14 +494,17 @@
     return Math.min(n - 1, Math.floor(a / slice));
   }
 
-  function targetRotation(index) {
+  function targetRotation(index, direction, durationMs) {
+    var Flick = window.PayPiggyFlick;
+    var dur = durationMs || (reduceMotion() ? 700 : 4200);
+    var spins = Flick ? Flick.spinCount(dur, reduceMotion()) : (reduceMotion() ? 1 : 6);
+    if (Flick) return Flick.targetRotation(currentRot, index, SEGS.length, direction || 1, spins);
     var n = SEGS.length || 1;
     var slice = 360 / n;
     var mid = index * slice + slice / 2;
     var landing = (360 - mid) % 360;
     var base = currentRot % 360;
     if (base < 0) base += 360;
-    var spins = reduceMotion() ? 1 : 6;
     var dest = currentRot - base + spins * 360 + landing;
     if (dest - currentRot < spins * 360 - 1) dest += 360;
     return dest;
@@ -523,9 +530,10 @@
         if (SEGS[i].label === result.label && String(SEGS[i].value) === String(result.value)) { idx = i; break; }
       }
     }
-    var dest = targetRotation(idx);
+    var flick = arguments[1] || null;
+    var dur = (flick && flick.duration) || (reduceMotion() ? 700 : 4200);
+    var dest = targetRotation(idx, flick && flick.direction, dur);
     var start = currentRot;
-    var dur = reduceMotion() ? 700 : 4200;
     var t0 = performance.now();
     var lastSeg = segmentAt(start);
     var wheel = $("whWheel");
@@ -588,20 +596,31 @@
     else { tone(660, 0.1, "sine", 0.05); tone(880, 0.18, "sine", 0.045, 0.08); }
   }
 
-  function spinIt() {
+  function revertFlick(flick) {
+    if (!flick || flick.revertTo == null) return;
+    currentRot = flick.revertTo;
+    $("whWheel").style.transform = "rotate(" + currentRot + "deg)";
+  }
+
+  function spinIt(flick) {
     if (spinning) return;
-    if (player.balance < needCents()) { openLoad(brokeMessage()); return; }
+    if (player.balance < needCents()) {
+      revertFlick(flick);
+      openLoad(brokeMessage());
+      return;
+    }
     if (demo) {
       var local = localSpin();
-      if (local.broke) { openLoad(brokeMessage()); return; }
+      if (local.broke) { revertFlick(flick); openLoad(brokeMessage()); return; }
       applyPlayer(local.player);
-      runSpin(local.result);
+      runSpin(local.result, flick);
       return;
     }
     api("/api/spin", { body: { game: IS_HUM ? "humiliation" : "wheel" } }).then(function (d) {
       player = d.player;
-      runSpin(d.result);
+      runSpin(d.result, flick);
     }).catch(function (err) {
+      revertFlick(flick);
       if (err.body && err.body.broke) openLoad((err.body && err.body.error) || brokeMessage());
       else alert(err.message || "Could not spin just now.");
     });
@@ -616,29 +635,109 @@
     reportHeight();
   }
 
-  function openLoad(msg) {
-    if (msg) $("ptLoadSheet").querySelector(".sub").childNodes[0].textContent = msg + " Your play code is ";
-    else $("ptLoadSheet").querySelector(".sub").childNodes[0].textContent = "Add funds to your account. Your play code is ";
+  /* ---------- add funds / pay up sheet ---------- */
+  var sheetMode = "load";
+
+  function paymentsLocked() { return !!(player && player.test); }
+
+  function selectAmount(dollars) {
+    var amt = Math.round(Number(dollars) * 100) / 100;
+    if (!(amt > 0)) amt = chosenAmt || 20;
+    chosenAmt = amt;
+    var matched = false;
+    Array.prototype.forEach.call($("ptPresets").children, function (c) {
+      var on = Number(c.getAttribute("data-amt")) === amt;
+      c.classList.toggle("on", on);
+      if (on) matched = true;
+    });
+    var custom = $("ptCustom");
+    if (custom) custom.value = matched ? "" : String(amt);
+  }
+
+  function paintPayButtons() {
+    var locked = paymentsLocked();
+    var stripeOn = !!flags.stripe && !demo;
+    var throneBtn = $("ptThronePay");
+    if (throneBtn) throneBtn.disabled = locked || flags.throne === false;
+    var sent = $("ptSent");
+    if (sent) sent.disabled = locked;
+    var card = $("ptCard");
+    if (card) {
+      card.disabled = locked || !stripeOn;
+      card.textContent = stripeOn ? "Pay by card" : "Card payments coming soon";
+    }
+    var note = $("ptTestPayNote");
+    if (note) note.classList.toggle("pt-hide", !locked);
+    var demoNote = $("ptDemoNote");
+    if (demoNote) demoNote.classList.toggle("pt-hide", !demo || locked);
+  }
+
+  function setSheetSub(textBeforeCode, extraAfter) {
+    var sub = $("ptSheetSub");
+    if (!sub) return;
+    sub.innerHTML = "";
+    sub.appendChild(document.createTextNode(textBeforeCode));
+    var code = document.createElement("code");
+    code.id = "ptSheetCode";
+    code.textContent = player.code || "PIG-XXXX";
+    sub.appendChild(code);
+    sub.appendChild(document.createTextNode(extraAfter || ". She uses it to find your gift."));
+  }
+
+  function openSheet(opts) {
+    opts = opts || {};
+    sheetMode = opts.mode || "load";
+    var title = $("ptSheetTitle");
+    var due = $("ptDue");
+    var dueAmt = $("ptDueAmt");
+    if (sheetMode === "payup") {
+      var owe = opts.amount != null ? Number(opts.amount) : lastChargeDollars;
+      if (!(owe > 0)) owe = lastChargeDollars || chosenAmt || 20;
+      selectAmount(owe);
+      if (title) title.textContent = "Pay up";
+      var oweLabel = money(Math.round(Number(owe) * 100)).replace(/\.00$/, "");
+      if (due) due.classList.remove("pt-hide");
+      if (dueAmt) dueAmt.textContent = oweLabel;
+      setSheetSub("Pay " + oweLabel + " to her. Your play code is ");
+    } else {
+      if (title) title.textContent = "Add funds";
+      if (due) due.classList.add("pt-hide");
+      if (opts.msg) setSheetSub(opts.msg + " Your play code is ");
+      else setSheetSub("Add funds to your account. Your play code is ");
+    }
     $("ptSheetCode").textContent = player.code || "PIG-XXXX";
     $("ptThroneBlock").classList.toggle("pt-hide", flags.throne === false);
-    $("ptStripeBlock").classList.toggle("pt-hide", !flags.stripe);
-    $("ptDemoNote").classList.toggle("pt-hide", !demo);
-    paintGiftLinks();
+    $("ptStripeBlock").classList.remove("pt-hide");
+    paintPayButtons();
+    paintGiftLinks(sheetMode === "load");
     $("ptLoadSheet").classList.add("show");
     reportHeight();
   }
+  function openLoad(msg) { openSheet({ mode: "load", msg: msg || "" }); }
+  function openPayUp(e) {
+    if (e) e.preventDefault();
+    var amt = lastChargeDollars;
+    var a = $("ptPay");
+    if (a && a.getAttribute("data-amount")) {
+      var n = Number(a.getAttribute("data-amount"));
+      if (n > 0) amt = n;
+    }
+    openSheet({ mode: "payup", amount: amt });
+  }
   function closeLoad() { $("ptLoadSheet").classList.remove("show"); }
 
-  function paintGiftLinks() {
+  function paintGiftLinks(showExtras) {
     var box = $("ptGiftLinks");
+    if (!box) return;
     box.innerHTML = "";
+    if (!showExtras) { box.classList.add("pt-hide"); return; }
+    box.classList.remove("pt-hide");
     function add(href, label, cls) {
       if (!href) return;
       var a = document.createElement("a");
       a.href = href; a.target = "_blank"; a.rel = "noopener"; a.className = cls; a.textContent = label;
       box.appendChild(a);
     }
-    if (flags.throne !== false) add(C.THRONE_URL || C.links && findLink("Throne"), "Open Throne", "throne");
     add(C.YOUPAY_URL || findLink("YouPay"), "YouPay", "alt");
     add(C.CASHAPP_URL || findLink("CashApp"), "Cash App", "alt");
   }
@@ -649,6 +748,7 @@
   }
 
   function markSent() {
+    if (paymentsLocked()) return;
     var amt = pickAmt();
     if (!amt || amt < 1) { alert("Pick an amount first."); return; }
     if (demo) {
@@ -672,10 +772,28 @@
     }).catch(function (err) { alert(err.message); });
   }
 
-  function payByCard() {
+  function payViaThrone() {
+    if (paymentsLocked()) return;
     var amt = pickAmt();
     if (!amt || amt < 1) { alert("Pick an amount first."); return; }
-    if (demo || !flags.stripe) { alert("Pay by card needs the PayPiggy server with Stripe keys."); return; }
+    var url = throneHref(amt);
+    if (demo) {
+      window.open(url, "_blank", "noopener");
+      markSent();
+      return;
+    }
+    api("/api/request-load", { body: { amount: amt } }).then(function (d) {
+      applyPlayer(d.player);
+      $("ptWait").classList.remove("pt-hide");
+      window.open(url, "_blank", "noopener");
+    }).catch(function (err) { alert(err.message); });
+  }
+
+  function payByCard() {
+    if (paymentsLocked()) return;
+    var amt = pickAmt();
+    if (!amt || amt < 1) { alert("Pick an amount first."); return; }
+    if (demo || !flags.stripe) return;
     var returnTo = location.href.split("#")[0].replace(/\?paid=\d/, "");
     api("/api/stripe/checkout", { body: { amount: amt, returnTo: returnTo } }).then(function (d) {
       if (d.url) location.href = d.url;
@@ -728,8 +846,10 @@
   };
   $("ptPin").onclick = spinIt;
   $("ptAgain").onclick = playAgain;
+  if ($("ptPay")) $("ptPay").onclick = openPayUp;
   $("ptOpenLoad").onclick = function () { openLoad(""); };
   $("ptSent").onclick = markSent;
+  $("ptThronePay").onclick = payViaThrone;
   $("ptCard").onclick = payByCard;
   $("ptCopyCode").onclick = function () { copyText(player.code, this); };
   $("ptUseCustom").onclick = function () {
@@ -743,6 +863,90 @@
   });
   document.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = closeLoad; });
   $("ptLoadSheet").addEventListener("click", function (e) { if (e.target === $("ptLoadSheet")) closeLoad(); });
+
+  /* Finger / mouse flick — same spin flow as the button; velocity only changes feel. */
+  (function bindFlick() {
+    var stage = $("whStage");
+    var wheel = $("whWheel");
+    if (!stage || !wheel) return;
+    var Flick = window.PayPiggyFlick;
+    var dragging = false;
+    var lastAngle = 0;
+    var lastTime = 0;
+    var velocity = 0;
+    var dragStartRot = 0;
+
+    function center() {
+      var r = wheel.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    function angleOf(e, c) {
+      if (Flick) return Flick.angleAt(e.clientX, e.clientY, c.x, c.y);
+      return Math.atan2(e.clientY - c.y, e.clientX - c.x) * 180 / Math.PI;
+    }
+    function onDown(e) {
+      if (spinning) return;
+      if ($("ptResult") && $("ptResult").classList.contains("show")) return;
+      if (e.target && e.target.closest && e.target.closest("#ptResult, .pt-over, button, a, .wh-hint")) return;
+      if (e.button != null && e.button !== 0) return;
+      dragging = true;
+      stage.classList.add("is-dragging");
+      dragStartRot = currentRot;
+      var c = center();
+      lastAngle = angleOf(e, c);
+      lastTime = performance.now();
+      velocity = 0;
+      if (e.pointerId != null && stage.setPointerCapture) {
+        try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      if (e.cancelable) e.preventDefault();
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      if (e.cancelable) e.preventDefault();
+      var c = center();
+      var ang = angleOf(e, c);
+      var now = performance.now();
+      var delta = ang - lastAngle;
+      delta = Flick ? Flick.normalizeDelta(delta) : ((delta + 540) % 360) - 180;
+      currentRot += delta;
+      wheel.style.transform = "rotate(" + currentRot + "deg)";
+      var dt = now - lastTime;
+      if (dt > 0) {
+        var v = delta / dt;
+        velocity = velocity * 0.4 + v * 0.6;
+      }
+      lastAngle = ang;
+      lastTime = now;
+    }
+    function onUp(e) {
+      if (!dragging) return;
+      dragging = false;
+      stage.classList.remove("is-dragging");
+      if (e && e.pointerId != null && stage.releasePointerCapture) {
+        try { stage.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+      var now = performance.now();
+      if (now - lastTime > 80) velocity = 0;
+      var enough = Flick ? Flick.shouldSpin(velocity) : Math.abs(velocity) >= 0.18;
+      if (!enough) {
+        currentRot = dragStartRot;
+        wheel.style.transform = "rotate(" + currentRot + "deg)";
+        return;
+      }
+      if (spinning) return;
+      var dir = velocity >= 0 ? 1 : -1;
+      var dur = Flick ? Flick.durationFromVelocity(velocity, reduceMotion()) : (reduceMotion() ? 700 : 4200);
+      spinIt({ duration: dur, direction: dir, revertTo: dragStartRot });
+    }
+    stage.addEventListener("pointerdown", onDown);
+    stage.addEventListener("pointermove", onMove);
+    stage.addEventListener("pointerup", onUp);
+    stage.addEventListener("pointercancel", onUp);
+    stage.addEventListener("lostpointercapture", function () {
+      if (dragging) onUp({});
+    });
+  })();
 
   function copyText(text, btn) {
     var done = function () { var o = btn.textContent; btn.textContent = "Copied"; setTimeout(function () { btn.textContent = o; }, 1400); };

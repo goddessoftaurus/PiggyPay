@@ -1,6 +1,6 @@
 # PayPiggy — Pin the Tail on the Pig & Wheel of Financial Torture
 
-A pink-and-red “pin the tail” site for a findom creator’s link page. Players **add funds to their account**, then play the poster game, the Wheel of Financial Torture, or the Wheel of Humiliation ($5 a spin). Wherever the tail or wheel lands is what they owe — or the task they do.
+A pink-and-red “pin the tail” site for a findom creator’s link page. Players **add funds to their account**, then play the poster game, the Wheel of Financial Torture, or the Wheel of Humiliation ($5 a spin). Wherever the tail or wheel lands is what they owe — or the task they do. On Pin the Tail, a bullseye is a smaller payment; a miss costs more.
 
 Rename the whole site by changing `SITE_NAME` at the top of `config.js`.
 
@@ -33,7 +33,7 @@ Open `game.html`, `wheel.html`, or `humiliation.html` from any static host (or a
 
 ## How funding works
 
-Every player gets a short play code like `PIG-7K2Q`. They add funds to their account with Throne (you approve it in `/admin`) or, optionally, Pay by card (Stripe). Pins and spins are decided **on the server** and deduct the landed amount from the account. `ALL` takes whatever is left. The humiliation wheel always costs $5 (enforced on the server) and lands on a task. A player with $0 cannot pin or spin until they add funds; the humiliation wheel also rejects a pocket under $5.
+Every player gets a short play code like `PIG-7K2Q`. They add funds to their account with Throne (you approve it in `/admin`) or, optionally, Pay by card (Stripe). Pins and spins are decided **on the server** and deduct the landed amount from the account. Pin the Tail picks a zone (bullseye is cheapest and fairly rare; each ring out costs more; a miss is highest) and the tail flies to a random point in that zone. `ALL` takes whatever is left. The humiliation wheel always costs $5 (enforced on the server) and lands on a task. A player with $0 cannot pin or spin until they add funds; the humiliation wheel also rejects a pocket under $5.
 
 ### Throne (primary)
 
@@ -53,7 +53,7 @@ Turn this off with `ENABLE_THRONE: false` in `config.js`.
 
 ### Pay by card (Stripe)
 
-When `ENABLE_STRIPE` is true **and** `STRIPE_SECRET_KEY` is set, the Add funds sheet shows **Pay by card**.
+The Add funds and Pay up sheets always show **Pay by card**. When `ENABLE_STRIPE` is true **and** `STRIPE_SECRET_KEY` is set, that button starts Stripe Checkout. If Stripe is not configured yet, the button stays visible but disabled with “Card payments coming soon.”
 
 1. Create a Stripe account and get **test** keys first (`sk_test_...`).
 2. Put them in `.env`:
@@ -73,7 +73,7 @@ If `ENABLE_STRIPE` is false, or the secret key is missing, the card button is hi
 
 **Adult / findom content and Stripe:** Stripe restricts or prohibits many adult and sexual-services businesses. A findom / tribute game may not be allowed on a standard Stripe account and can get payments or the account shut down. Read Stripe’s restricted-business list and, if you still want cards, talk to them (or a processor that actually supports this category) *before* going live. Throne gifts plus manual `/admin` approval do not go through Stripe.
 
-`Pay up` after a pin opens `PAYMENT_URL` from `config.js` with `?amount=` set to the dollars just landed (for a later payment link). If `PAYMENT_URL` is empty, it falls back to the crypto section on the links page.
+`Pay up` after a pin or money-wheel spin opens an in-page sheet pre-filled with the amount owed, with **Pay via Throne** (opens her Throne wishlist and creates a pending gift for her to approve) and **Pay by card** (Stripe Checkout). Test-play accounts see the same sheet with payments disabled and a “Test mode — no real payment” note. On both wheels, players can swipe or flick the wheel with a finger or mouse, or tap Spin; a flick uses the same server-side spin and only changes how long the wheel turns.
 
 ## Deploy for free
 
@@ -176,7 +176,7 @@ Keep `widget/`, `assets/`, `config.js`, `game.js`, `wheel.js`, and the CSS files
 - `YOUR_BTC_ADDRESS`, `YOUR_ETH_ADDRESS`, `YOUR_SOL_ADDRESS`
 - `THRONE_URL`, optional `YOUPAY_URL` / `CASHAPP_URL`
 - `backLinkUrl` ("Back to links" on the game pages, same tab)
-- `PAYMENT_URL` (Pay up + `?amount=`)
+- `THRONE_URL` (Pay via Throne / Add funds)
 - `ENABLE_THRONE` / `ENABLE_STRIPE`
 - `SALES_GOAL` (analytics ring, dollars, default 1000)
 - Money spots and weights in `segments`

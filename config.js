@@ -44,22 +44,27 @@ const CONFIG = {
   /* ----- Pin the Tail on the Pig ----- */
   gameTitle: "Pin the Tail on the Pig",
   wheelTitle: "Wheel of Financial Torture",
-  tagline: "Blindfold on. Wherever the tail lands is what you send.",
+  tagline: "Blindfold on. Hit the bullseye and you send less. Miss, and you send more.",
   wheelTagline: "Spin it. Wherever it stops is what you send.",
 
-  /* Pin outcomes, mapped to bullseye rings (center = ALL, outer / miss = lower).
-     `weight` is the relative chance (higher = more likely).
+  /* Amounts used by Pin the Tail and the money wheel.
+     `weight` is the relative chance on the Wheel of Financial Torture.
+     Pin the Tail uses `pinZone` + `pinWeight`: low amounts land on the
+     bullseye (a lucky, cheaper hit — kept fairly rare), each ring further
+     out costs more, and an off-target miss is the highest (including ALL).
+     If pinZone / pinWeight are omitted, they are derived automatically
+     (lowest amount → bullseye, highest → miss).
      `value: "ALL"` takes whatever is left in the player's pocket. */
   segments: [
-    { label: "$5",   value: 5,    weight: 22 },
-    { label: "$10",  value: 10,   weight: 18 },
-    { label: "$20",  value: 20,   weight: 14 },
-    { label: "$25",  value: 25,   weight: 12 },
-    { label: "$50",  value: 50,   weight: 10 },
-    { label: "$69",  value: 69,   weight: 8 },
-    { label: "$100", value: 100,  weight: 7 },
-    { label: "$200", value: 200,  weight: 5 },
-    { label: "ALL",  value: "ALL", weight: 4 }
+    { label: "$5",   value: 5,    weight: 22, pinZone: "bullseye", pinWeight: 5 },
+    { label: "$10",  value: 10,   weight: 18, pinZone: "inner",    pinWeight: 10 },
+    { label: "$20",  value: 20,   weight: 14, pinZone: "inner",    pinWeight: 11 },
+    { label: "$25",  value: 25,   weight: 12, pinZone: "mid",      pinWeight: 14 },
+    { label: "$50",  value: 50,   weight: 10, pinZone: "mid",      pinWeight: 16 },
+    { label: "$69",  value: 69,   weight: 8,  pinZone: "outer",    pinWeight: 16 },
+    { label: "$100", value: 100,  weight: 7,  pinZone: "outer",    pinWeight: 14 },
+    { label: "$200", value: 200,  weight: 5,  pinZone: "miss",     pinWeight: 14 },
+    { label: "ALL",  value: "ALL", weight: 4, pinZone: "miss",     pinWeight: 8 }
   ],
 
   allBanner: "You owe ALL 🐷",
@@ -86,8 +91,8 @@ const CONFIG = {
   /* "Back to links" on the game pages. Opens in the same tab. */
   backLinkUrl: "https://linktr.ee/crystal98xo",
 
-  /* Pay up opens this URL with ?amount=<landed dollars> appended.
-     Leave empty to fall back to the crypto section on the links page. */
+  /* Pay up opens an in-page sheet with Throne + card options, pre-filled
+     with the amount owed. PAYMENT_URL is unused (kept for compatibility). */
   PAYMENT_URL: "",
 
   /* Wishlist / gift links used on the Add funds sheet. */
