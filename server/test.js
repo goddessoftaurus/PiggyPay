@@ -272,6 +272,97 @@ function cookie(setCookie) {
   ok("player reloads with same balance", after && after.balance === before.balance && after.tab === before.tab, JSON.stringify({ before: before && before.balance, after: after && after.balance }));
   await store2.close();
 
+  console.log("11. Test play: admin-only play money, excluded from analytics and queues");
+  r = await req(port, "GET", "/admin/test");
+  ok("test play page served", r.status === 200 && /Test play/.test(r.text) && /TEST MODE — play money/.test(r.text), "status=" + r.status);
+
+  r = await req(port, "GET", "/api/admin/test");
+  ok("test state requires admin", r.status === 401);
+  r = await req(port, "POST", "/api/admin/test/player", { body: {} });
+  ok("create test player requires admin", r.status === 401);
+  r = await req(port, "POST", "/api/admin/test/credit", { body: { playerId: "x", amount: 50 } });
+  ok("credit test money requires admin", r.status === 401);
+  r = await req(port, "POST", "/api/admin/test/reset", { body: { playerId: "x" } });
+  ok("reset test pocket requires admin", r.status === 401);
+
+  r = await req(port, "GET", "/api/admin/stats", { headers: { Cookie: adminCookie } });
+  const statsBefore = r.json;
+  const fundsBefore = statsBefore.totalFunds;
+  const salesBefore = statsBefore.salesCount;
+  const posterBefore = (statsBefore.games && statsBefore.games.poster && statsBefore.games.poster.count) || 0;
+  const wheelBefore = (statsBefore.games && statsBefore.games.wheel && statsBefore.games.wheel.count) || 0;
+  const humBefore = (statsBefore.games && statsBefore.games.humiliation && statsBefore.games.humiliation.count) || 0;
+
+  r = await req(port, "POST", "/api/admin/test/player", { headers: { Cookie: adminCookie }, body: {} });
+  ok("admin creates test player", r.status === 200 && r.json.player && r.json.player.test === true && r.json.token, r.text);
+  const testToken = r.json.token;
+  const testId = r.json.player.id;
+  const testCode = r.json.player.code;
+  const testAuth = { Authorization: "Bearer " + testToken };
+  ok("public /api/new is not a test player", true);
+  r = await req(port, "POST", "/api/new", { body: {} });
+  ok("regular new player is not test", r.status === 200 && r.json.player.test === false, r.text);
+  const realId = r.json.player.id;
+
+  r = await req(port, "POST", "/api/admin/test/credit", {
+    headers: { Cookie: adminCookie }, body: { playerId: realId, amount: 50 }
+  });
+  ok("cannot credit play money to a real player", r.status === 400, r.text);
+
+  r = await req(port, "POST", "/api/admin/test/credit", {
+    headers: { Cookie: adminCookie }, body: { playerId: testId, amount: 50 }
+  });
+  ok("admin credits +$50 play money", r.status === 200 && r.json.player.balance === 5000 && r.json.player.test === true, r.text);
+  r = await req(port, "POST", "/api/admin/test/credit", {
+    headers: { Cookie: adminCookie }, body: { playerId: testId, amount: 100 }
+  });
+  ok("admin credits +$100 play money", r.status === 200 && r.json.player.balance === 15000, r.text);
+  r = await req(port, "POST", "/api/admin/test/credit", {
+    headers: { Cookie: adminCookie }, body: { playerId: testId, amount: 500 }
+  });
+  ok("admin credits +$500 play money", r.status === 200 && r.json.player.balance === 65000, r.text);
+
+  r = await req(port, "GET", "/api/me", { headers: testAuth });
+  ok("test /api/me shows test flag and $650", r.status === 200 && r.json.player.test === true && r.json.player.balance === 65000, r.text);
+
+  r = await req(port, "POST", "/api/request-load", { headers: testAuth, body: { amount: 20 } });
+  ok("test player cannot request a real Throne load", r.status === 400, r.text);
+  r = await req(port, "POST", "/api/stripe/checkout", { headers: testAuth, body: { amount: 20 } });
+  ok("test player cannot start Stripe checkout", r.status === 400, r.text);
+
+  // Pending loads created directly still stay off the real admin queue.
+  await store.requestLoad(testId, 2000);
+  r = await req(port, "GET", "/api/admin/state", { headers: { Cookie: adminCookie } });
+  ok("test pending load hidden from admin queue", r.status === 200 && !(r.json.pending || []).some((l) => l.code === testCode), JSON.stringify(r.json.pending));
+  ok("test player hidden from real players list", !(r.json.players || []).some((l) => l.code === testCode), JSON.stringify(r.json.players));
+
+  r = await req(port, "POST", "/api/pin", { headers: testAuth, body: {} });
+  ok("test player can pin", r.status === 200 && r.json.result && r.json.result.charge > 0, r.text);
+  r = await req(port, "POST", "/api/spin", { headers: testAuth, body: { game: "wheel" } });
+  ok("test player can spin the money wheel", r.status === 200 && r.json.result && r.json.result.game === "wheel", r.text);
+  r = await req(port, "POST", "/api/spin", { headers: testAuth, body: { game: "humiliation" } });
+  ok("test player can spin humiliation", r.status === 200 && r.json.result && r.json.result.game === "humiliation" && r.json.result.charge === 500, r.text);
+
+  r = await req(port, "GET", "/api/admin/test", { headers: { Cookie: adminCookie } });
+  ok("test desk lists the player and history", r.status === 200 && (r.json.players || []).some((p) => p.id === testId && p.pins.length >= 3 && p.loads.length >= 3), r.text);
+
+  r = await req(port, "POST", "/api/admin/test/reset", { headers: { Cookie: adminCookie }, body: { playerId: testId } });
+  ok("reset test pocket to $0", r.status === 200 && r.json.player.balance === 0, r.text);
+  r = await req(port, "GET", "/api/me", { headers: testAuth });
+  ok("pocket is $0 after reset, history kept", r.json.player.balance === 0 && r.json.player.pins.length >= 3, r.text);
+
+  r = await req(port, "POST", "/api/claim", { body: { code: testCode } });
+  ok("claim test code returns the same token", r.status === 200 && r.json.token === testToken && r.json.player.test === true, "token rotated?");
+  r = await req(port, "POST", "/api/claim", { body: { code: testCode } });
+  ok("second claim still returns the same token", r.status === 200 && r.json.token === testToken);
+
+  r = await req(port, "GET", "/api/admin/stats", { headers: { Cookie: adminCookie } });
+  ok("analytics funds unchanged by test money", r.json.totalFunds === fundsBefore, "before=" + fundsBefore + " after=" + r.json.totalFunds);
+  ok("analytics sales count unchanged", r.json.salesCount === salesBefore, "before=" + salesBefore + " after=" + r.json.salesCount);
+  ok("analytics poster count unchanged", r.json.games.poster.count === posterBefore, JSON.stringify(r.json.games.poster));
+  ok("analytics wheel count unchanged", r.json.games.wheel.count === wheelBefore, JSON.stringify(r.json.games.wheel));
+  ok("analytics humiliation count unchanged", r.json.games.humiliation.count === humBefore, JSON.stringify(r.json.games.humiliation));
+
   server.close();
   await store.close();
   if (fails.length) {

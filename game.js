@@ -43,6 +43,7 @@
 
   /* ---------- markup ---------- */
   root.innerHTML =
+    '<div class="pt-test-ribbon pt-hide" id="ptTestRibbon" role="status">TEST MODE — play money</div>' +
     '<canvas id="fx"></canvas>' +
     '<header class="pt-head"><div class="brand" id="ptBrand"></div><h1 id="ptTitle"></h1><p id="ptTag"></p></header>' +
     '<section class="pt-panel pt-gate" id="ptGate">' +
@@ -228,6 +229,10 @@
     var pend = (p.pending && p.pending.length) || 0;
     $("ptPendingNote").classList.toggle("pt-hide", !pend);
     $("ptWait").classList.toggle("pt-hide", !pend);
+    var testOn = !!p.test;
+    var ribbon = $("ptTestRibbon");
+    if (ribbon) ribbon.classList.toggle("pt-hide", !testOn);
+    document.body.classList.toggle("paypiggy-test", testOn);
     renderHist();
     renderLoads();
     reportHeight();
@@ -607,7 +612,39 @@
   sizeFx();
   if (IS_WIDGET && typeof ResizeObserver !== "undefined") new ResizeObserver(reportHeight).observe(document.body);
 
-  /* Boot: detect API, then maybe auto-open after Stripe return. */
+  function queryPlayCode() {
+    try {
+      var params = new URLSearchParams(location.search || "");
+      return (params.get("code") || "").trim();
+    } catch (e) { return ""; }
+  }
+
+  function clearPlayCodeQuery() {
+    try {
+      if (!queryPlayCode()) return;
+      var u = new URL(location.href);
+      u.searchParams.delete("code");
+      var q = u.searchParams.toString();
+      history.replaceState({}, "", u.pathname + (q ? "?" + q : "") + u.hash);
+    } catch (e) {}
+  }
+
+  function claimByCode(code) {
+    if (demo) {
+      player = loadDemo();
+      player.code = code.toUpperCase();
+      saveDemo();
+      applyPlayer(player);
+      showGame();
+      return Promise.resolve();
+    }
+    return api("/api/claim", { body: { code: code } }).then(function (d) {
+      if (d.token) setToken(d.token);
+      applyPlayer(d.player);
+      showGame();
+    });
+  }
+
   api("/api/health").then(function (h) {
     demo = false;
     flags.stripe = !!(h.stripe && C.ENABLE_STRIPE !== false);
@@ -617,6 +654,10 @@
     flags.stripe = false;
     flags.throne = C.ENABLE_THRONE !== false;
   }).then(function () {
+    var code = queryPlayCode();
+    if (code) {
+      return claimByCode(code).then(function () { clearPlayCodeQuery(); }).catch(function (err) { alert(err.message || "Could not open that play code."); });
+    }
     if (/[?&]paid=1/.test(location.search)) {
       startSession(false).then(function () {
         showGame();

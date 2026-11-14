@@ -250,6 +250,7 @@ function createApp() {
     if (!throneEnabled()) return res.status(400).json({ error: "Throne gifts are turned off." });
     const p = await requirePlayer(req, res);
     if (!p) return;
+    if (p.test) return res.status(400).json({ error: "This is a test account. Add play money from the Test play page." });
     const cents = dollarsToCents(req.body && req.body.amount);
     if (cents < 100) return res.status(400).json({ error: "Pick an amount of at least $1." });
     const load = await store.requestLoad(p, cents);
@@ -320,9 +321,10 @@ function createApp() {
   }));
 
   app.post("/api/stripe/checkout", wrap(async (req, res) => {
-    if (!stripeEnabled()) return res.status(400).json({ error: "Pay by card is not available." });
     const p = await requirePlayer(req, res);
     if (!p) return;
+    if (p.test) return res.status(400).json({ error: "This is a test account. Add play money from the Test play page." });
+    if (!stripeEnabled()) return res.status(400).json({ error: "Pay by card is not available." });
     const cents = dollarsToCents(req.body && req.body.amount);
     if (cents < 100) return res.status(400).json({ error: "Pick an amount of at least $1." });
     const origin = publicUrl(req);
@@ -386,9 +388,38 @@ function createApp() {
     res.json(out);
   }));
 
+  app.get("/api/admin/test", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json(await store.adminTestState());
+  }));
+
+  app.post("/api/admin/test/player", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json(await store.createPlayer({ test: true }));
+  }));
+
+  app.post("/api/admin/test/credit", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = req.body && (req.body.playerId || req.body.id);
+    const cents = dollarsToCents(req.body && req.body.amount);
+    const out = await store.creditTest(id, cents);
+    if (out.error) return res.status(400).json({ error: out.error });
+    res.json(out);
+  }));
+
+  app.post("/api/admin/test/reset", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = req.body && (req.body.playerId || req.body.id);
+    const out = await store.resetTestBalance(id);
+    if (out.error) return res.status(400).json({ error: out.error });
+    res.json(out);
+  }));
+
   const ANALYTICS_HTML = path.join(__dirname, "analytics.html");
+  const TEST_HTML = path.join(__dirname, "test-play.html");
   app.get("/admin", (req, res) => res.sendFile(ADMIN_HTML));
   app.get(["/admin/analytics", "/admin/analytics.html"], (req, res) => res.sendFile(ANALYTICS_HTML));
+  app.get(["/admin/test", "/admin/test.html"], (req, res) => res.sendFile(TEST_HTML));
   app.use(express.static(ROOT, { extensions: ["html"] }));
 
   return app;
@@ -406,6 +437,7 @@ if (require.main === module) {
     console.log("  Humiliation: http://localhost:" + port + "/humiliation.html");
     console.log("  Admin:     http://localhost:" + port + "/admin");
     console.log("  Analytics: http://localhost:" + port + "/admin/analytics");
+    console.log("  Test play: http://localhost:" + port + "/admin/test");
     if (!pw) console.log("  WARNING: ADMIN_PASSWORD is not set. Admin login will fail.");
     console.log("  Stripe checkout: " + (stripeEnabled() ? "on" : "off"));
     console.log("  Throne gifts:    " + (throneEnabled() ? "on" : "off"));

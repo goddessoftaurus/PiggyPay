@@ -190,6 +190,7 @@ function pub(db, p) {
     code: p.code,
     balance: p.balance,
     tab: p.tab,
+    test: !!p.test,
     pins: p.pins.slice(0, 20),
     loads: p.loads.slice(0, 20),
     pending: db.pending
@@ -220,7 +221,8 @@ function publicPlayer(player) {
   return read((db) => pub(db, db.players[id]));
 }
 
-function createPlayer() {
+function createPlayer(opts) {
+  const test = !!(opts && opts.test);
   return mutate((db) => {
     let code, tries = 0;
     do { code = makeCode(); tries++; } while (byCode(db, code) && tries < 20);
@@ -233,7 +235,8 @@ function createPlayer() {
       tab: 0,
       pins: [],
       loads: [],
-      created: Date.now()
+      created: Date.now(),
+      test
     };
     db.players[p.id] = p;
     return { player: pub(db, p), token };
@@ -248,7 +251,8 @@ function claimByCode(code) {
   return mutate((db) => {
     const p = byCode(db, code);
     if (!p) return null;
-    p.token = crypto.randomBytes(24).toString("hex");
+    // Test players keep the same token so several game tabs can stay signed in.
+    if (!p.test) p.token = crypto.randomBytes(24).toString("hex");
     return { player: pub(db, p), token: p.token };
   });
 }
@@ -451,6 +455,7 @@ function computeStats(db, goalDollars) {
   const sales = [];
   const games = { poster: { count: 0, amount: 0 }, wheel: { count: 0, amount: 0 }, humiliation: { count: 0, amount: 0 } };
   for (const p of Object.values(db.players)) {
+    if (p.test) continue;
     for (const l of p.loads || []) {
       if (l.status === "approved" && (l.amount || 0) > 0) {
         sales.push({
@@ -498,11 +503,17 @@ function adminStats(goalDollars) {
   return read((db) => computeStats(db, goalDollars));
 }
 
+function isTestId(db, playerId) {
+  const p = db.players[playerId];
+  return !!(p && p.test);
+}
+
 function adminState() {
   return read((db) => {
-    const pending = db.pending.filter((l) => l.status === "pending");
-    const recent = db.pending.filter((l) => l.status !== "pending").slice(0, 25);
+    const pending = db.pending.filter((l) => l.status === "pending" && !isTestId(db, l.playerId));
+    const recent = db.pending.filter((l) => l.status !== "pending" && !isTestId(db, l.playerId)).slice(0, 25);
     const players = Object.values(db.players)
+      .filter((p) => !p.test)
       .sort((a, b) => (b.created || 0) - (a.created || 0))
       .slice(0, 40)
       .map((p) => ({
@@ -513,6 +524,55 @@ function adminState() {
         created: p.created
       }));
     return { pending, recent, players };
+  });
+}
+
+function adminTestState() {
+  return read((db) => {
+    const players = Object.values(db.players)
+      .filter((p) => p.test)
+      .sort((a, b) => (b.created || 0) - (a.created || 0))
+      .map((p) => ({
+        id: p.id,
+        code: p.code,
+        balance: p.balance,
+        tab: p.tab,
+        test: true,
+        pins: (p.pins || []).slice(0, 20),
+        loads: (p.loads || []).slice(0, 20),
+        created: p.created
+      }));
+    return { players };
+  });
+}
+
+function creditTest(playerId, amountCents) {
+  return mutate((db) => {
+    const p = db.players[playerId];
+    if (!p) return { error: "Player not found." };
+    if (!p.test) return { error: "Play money can only be added to a test player." };
+    const amt = Math.max(0, Math.round(Number(amountCents) || 0));
+    if (amt < 1) return { error: "Pick an amount to add." };
+    p.balance += amt;
+    p.loads.unshift({
+      id: uid("ld"),
+      amount: amt,
+      source: "test",
+      ts: Date.now(),
+      status: "approved"
+    });
+    if (p.loads.length > 40) p.loads.length = 40;
+    return { ok: true, player: pub(db, p) };
+  });
+}
+
+function resetTestBalance(playerId) {
+  return mutate((db) => {
+    const p = db.players[playerId];
+    if (!p) return { error: "Player not found." };
+    if (!p.test) return { error: "Only a test player can be reset this way." };
+    p.balance = 0;
+    return { ok: true, player: pub(db, p) };
   });
 }
 
@@ -535,7 +595,10 @@ module.exports = {
   recordPin,
   play,
   adminState,
+  adminTestState,
   adminStats,
+  creditTest,
+  resetTestBalance,
   persist: async function () { /* every change is saved as it happens */ },
   close: () => (backend ? backend.close() : Promise.resolve()),
   _pgConfig: pgConfig,

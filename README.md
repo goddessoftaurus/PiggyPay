@@ -22,9 +22,10 @@ Then open:
 - Links: http://localhost:3000/index.html
 - Admin desk (you only): http://localhost:3000/admin
 - Sales analytics (you only): http://localhost:3000/admin/analytics
+- Test play (you only): http://localhost:3000/admin/test
 - Embed demo: http://localhost:3000/embed-demo.html
 
-`npm test` runs an end-to-end check: create a player, request a Throne-style add-funds gift, approve it in admin, pin (server-side roll deducts the account), credit the same player with a **mocked** Stripe webhook (signed with a dummy secret — no real Stripe keys needed), spin the money wheel and the $5 humiliation wheel (also server-side), and check that `/api/admin/stats` sums Throne + Stripe sales and per-game pins/spins.
+`npm test` runs an end-to-end check: create a player, request a Throne-style add-funds gift, approve it in admin, pin (server-side roll deducts the account), credit the same player with a **mocked** Stripe webhook (signed with a dummy secret — no real Stripe keys needed), spin the money wheel and the $5 humiliation wheel (also server-side), check that `/api/admin/stats` sums Throne + Stripe sales and per-game pins/spins, and confirm test-play accounts can be loaded with play money by admin only and are excluded from analytics and the real pending queue.
 
 ### Static demo (no server)
 
@@ -118,6 +119,17 @@ Sign in at `/admin/analytics` with the same `ADMIN_PASSWORD`. The page shows:
 - A big animated ring that fills toward `SALES_GOAL` in `config.js` (default `$1,000`). It shows `$X / $1,000` and the percent, and celebrates when the goal is reached.
 
 The numbers come from `GET /api/admin/stats` (admin cookie required).
+
+## Test play
+
+Sign in at `/admin/test` with the same `ADMIN_PASSWORD` (there's also a Test play link from `/admin`). You can:
+
+1. Create a test player (or pick an existing one)
+2. Load play money with +$50, +$100, or +$500, or reset the pocket to $0
+3. Open Pin the Tail, the money wheel, or the humiliation wheel as that player (`?code=PIG-XXXX` signs the browser in)
+4. Come back to the page to see what they owed and which tasks they landed on
+
+Test players are flagged (`test: true`). Their play money, pins, and spins are left out of sales analytics and the $1,000 goal ring, and they never show up in the real admin pending queue. The games show a **TEST MODE — play money** ribbon while you're playing as one. Only a signed-in admin can credit test money; test accounts also can't start a real Throne request or Stripe checkout.
 
 ## Embed
 
