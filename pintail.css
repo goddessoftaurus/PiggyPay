@@ -1,6 +1,6 @@
 /* Pin the Tail on the Pig — poster game */
 :root{
-  --font-display:'Luckiest Guy',system-ui,sans-serif;
+  --font-display:"Matcha Style","Luckiest Guy",cursive;
   --font-body:'Fredoka',system-ui,sans-serif;
   --pt-pink:#ff4d8d; --pt-pink-soft:#ff8fb8; --pt-pink-pale:#ffd0e0;
   --pt-red:#e0115f; --pt-red-deep:#b3001b; --pt-red-dark:#6a0010;
@@ -43,8 +43,8 @@ body.game .pt-head h1,body.widget .pt-head h1{font:700 clamp(22px,6.5vw,30px)/1.
   background:#e0115f center/cover no-repeat;box-shadow:0 0 0 4px #6b3a18,0 0 0 8px #ffc83d,0 12px 24px rgba(80,0,16,.35)}
 .pt-poster img.farm{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .pt-sign{position:absolute;top:3%;left:8%;width:84%;text-align:center;z-index:3;pointer-events:none}
-.pt-sign b{display:block;font:400 clamp(22px,6.8vw,38px)/.95 var(--font-display),cursive;
-  color:#e8126b;letter-spacing:1px;text-transform:uppercase;text-shadow:0 2px 6px rgba(58,8,16,.4)}
+.pt-sign b{display:block;font:400 clamp(20px,6.2vw,34px)/.95 var(--font-display),cursive;
+  color:#e8126b;letter-spacing:0.4px;text-transform:uppercase}
 .pt-sign small{display:block;margin-top:3px;font:700 clamp(10px,2.5vw,14px)/1.2 Arial,Helvetica,sans-serif;
   color:#b3001b;letter-spacing:.4px}
 .pt-pig{position:absolute;left:11%;width:77%;bottom:11.5%;z-index:2;pointer-events:none}

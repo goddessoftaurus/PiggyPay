@@ -367,7 +367,9 @@ function cookie(setCookie) {
   console.log("12. ROOT_PAGE, request-host URLs, games hub, and back-to-links");
   function isGamesHub(res) {
     return res.status === 200 && !res.headers.location
-      && /PAYPIGGY/.test(res.text)
+      && res.text.includes("Piggy Play")
+      && res.text.includes("Created by your Goddess Mari")
+      && res.text.includes("@goddessoftaurus")
       && res.text.includes("Pin the Tail on the Pig")
       && res.text.includes("Wheel of Financial Torture")
       && res.text.includes("Wheel of Humiliation")
@@ -518,6 +520,67 @@ function cookie(setCookie) {
   const servedFlick = await req(port, "GET", "/wheel-flick.js");
   const servedPin = await req(port, "GET", "/pin-zones.js");
   ok("flick and pin helpers are served as static files", servedFlick.status === 200 && servedPin.status === 200 && servedFlick.text.includes("shouldSpin") && servedPin.text.includes("buildPinTiers"));
+
+  console.log("14. Player account page");
+  function isAccountPage(res) {
+    return res.status === 200
+      && res.text.includes("My account")
+      && res.text.includes("Add funds")
+      && res.text.includes("Sign out")
+      && res.text.includes("start a new account")
+      && res.text.includes("Play code")
+      && !res.text.includes("/api/admin");
+  }
+  r = await req(port, "GET", "/account");
+  ok("GET /account serves the player account page", isAccountPage(r), "status=" + r.status);
+  r = await req(port, "GET", "/account.html");
+  ok("GET /account.html serves the player account page", isAccountPage(r), "status=" + r.status);
+  const accountJs = fs.readFileSync(path.join(__dirname, "..", "account.js"), "utf8");
+  ok("account.js uses player APIs only", accountJs.includes('"/api/me"') && accountJs.includes('"/api/new"') && accountJs.includes('"/api/claim"') && accountJs.includes('"/api/request-load"') && !accountJs.includes("/api/admin"));
+  ok("account.js signs out to the games hub with a save-your-code note", accountJs.includes("acctSignOut") && accountJs.includes("signedout=") && accountJs.includes("gamesHubBase"));
+  const accountHtml = fs.readFileSync(path.join(__dirname, "..", "account.html"), "utf8");
+  ok("account Add funds sheet matches the games", accountHtml.includes("Pay via Throne") && accountJs.includes("Card payments coming soon") && accountHtml.includes("no real payment") && accountJs.includes("paymentsLocked"));
+
+  r = await req(port, "GET", "/api/me");
+  ok("/api/me rejects a missing session", r.status === 401, "status=" + r.status);
+  r = await req(port, "POST", "/api/new", { body: {} });
+  ok("account player A is created", r.status === 200 && r.json.token && r.json.player.code, r.text);
+  const aTok = r.json.token, aCode = r.json.player.code, aId = r.json.player.id;
+  r = await req(port, "GET", "/api/me", { headers: { Authorization: "Bearer " + aTok } });
+  ok("/api/me returns only player A", r.status === 200 && r.json.player && r.json.player.code === aCode && r.json.player.id === aId && !r.json.player.token, "code=" + (r.json.player && r.json.player.code));
+  ok("player payload does not list other players", r.json.player && !r.json.players && Array.isArray(r.json.player.pins) && Array.isArray(r.json.player.loads) && Array.isArray(r.json.player.pending));
+  r = await req(port, "POST", "/api/new", { body: {} });
+  const bTok = r.json.token, bCode = r.json.player.code;
+  r = await req(port, "GET", "/api/me", { headers: { Authorization: "Bearer " + aTok } });
+  ok("player A cannot see player B", r.status === 200 && r.json.player.code === aCode && r.json.player.code !== bCode && JSON.stringify(r.json).indexOf(bCode) < 0);
+  r = await req(port, "GET", "/api/me", { headers: { Authorization: "Bearer " + bTok } });
+  ok("player B cannot see player A", r.status === 200 && r.json.player.code === bCode && JSON.stringify(r.json).indexOf(aCode) < 0);
+  r = await req(port, "POST", "/api/claim", { body: { code: aCode } });
+  ok("claiming a code returns a session for that player only", r.status === 200 && r.json.player.code === aCode && r.json.token && r.json.token !== aTok);
+  const aTok2 = r.json.token;
+  r = await req(port, "GET", "/api/me", { headers: { Authorization: "Bearer " + aTok2 } });
+  ok("claimed session loads player A", r.status === 200 && r.json.player.code === aCode);
+
+  const styleCss = fs.readFileSync(path.join(__dirname, "..", "style.css"), "utf8");
+  ok("Matcha Style is self-hosted with font-display swap", styleCss.includes('font-family:"Matcha Style"') && styleCss.includes("font-display:swap") && styleCss.includes("/assets/fonts/MatchaStyle.woff2"));
+  const fontWoff = fs.existsSync(path.join(__dirname, "..", "assets/fonts/MatchaStyle.woff2"));
+  const fontTtf = fs.existsSync(path.join(__dirname, "..", "assets/fonts/MatchaStyle.ttf"));
+  ok("Matcha Style woff2 and ttf are in assets/fonts", fontWoff && fontTtf);
+  r = await req(port, "GET", "/assets/fonts/MatchaStyle.woff2");
+  ok("Matcha Style woff2 is served", r.status === 200 && r.text.length > 1000, "status=" + r.status + " type=" + r.headers["content-type"] + " len=" + (r.text && r.text.length));
+
+  for (const file of ["game.html", "wheel.html", "humiliation.html"]) {
+    const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+    ok(file + " has a My account link", html.includes('class="back back-account"') && html.includes("My account"));
+  }
+  const hubHtml = fs.readFileSync(path.join(__dirname, "..", "games.html"), "utf8");
+  ok("games hub has a prominent My account link", hubHtml.includes("My account") && hubHtml.includes("hub-account"));
+
+  console.log("15. Admin endpoints stay protected");
+  r = await req(port, "GET", "/api/admin/state");
+  ok("admin state still requires a sign-in", r.status === 401, "status=" + r.status);
+  r = await req(port, "GET", "/api/admin/test");
+  ok("admin test desk still requires a sign-in", r.status === 401, "status=" + r.status);
 
   server.close();
   await store.close();

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>PayPiggy — My account</title>
+  <meta name="theme-color" content="#e0115f">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐷</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="pintail.css">
+  <link rel="stylesheet" href="account.css">
+</head>
+<body class="account">
+  <div class="waves" aria-hidden="true">
+    <div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
+    <div class="w w3"></div><div class="w w2"></div><div class="w w1"></div>
+  </div>
+  <main class="acct">
+    <header class="hub-sign">
+      <h1 id="acctBrand">PAYPIGGY</h1>
+      <p class="hub-pick">My account</p>
+    </header>
+
+    <nav class="back-row" aria-label="Page links">
+      <a class="back" href="https://linktr.ee/crystal98xo">← back to links</a>
+      <a class="back back-games" href="/games.html">← back to games</a>
+    </nav>
+
+    <div class="ribbon pt-hide" id="acctRibbon">TEST MODE — play money</div>
+
+    <section class="card" id="gateCard">
+      <h2>Welcome back</h2>
+      <p class="muted">Enter your play code to get back into your account, or start a new one.</p>
+      <label for="acctCode">Play code</label>
+      <div class="claim-row">
+        <input id="acctCode" type="text" maxlength="12" placeholder="PIG-XXXX" autocomplete="username" autocapitalize="characters">
+        <button class="go-inline" type="button" id="acctOpen">Open</button>
+      </div>
+      <div class="err" id="acctErr"></div>
+      <hr class="acct-rule">
+      <h2>New here?</h2>
+      <p class="muted">This is a grown-up teasing game. Real gifts are confirmed by Goddess Mari. Nothing on this page charges a card unless you choose Pay by card.</p>
+      <button class="go" type="button" id="acctStart">I'm 18+, start a new account</button>
+    </section>
+
+    <div id="desk" class="hide">
+      <section class="card">
+        <div class="toolbar">
+          <h2 style="margin:0">Your account</h2>
+          <button class="out" type="button" id="acctRefresh">Refresh</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>Play code</span><b id="deskCode">—</b></div>
+          <div class="stat"><span>Pocket</span><b id="deskPocket">$0.00</b></div>
+          <div class="stat alt"><span>Tab (owed)</span><b id="deskTab">$0.00</b></div>
+          <div class="stat alt"><span>Plays</span><b id="deskPlays">0</b></div>
+        </div>
+        <div class="acct-actions">
+          <button class="go" type="button" id="acctAdd">Add funds</button>
+          <button class="ghost" type="button" id="acctCopy">Copy code</button>
+        </div>
+        <p class="pending-note hide" id="acctPending">A gift is waiting for her to confirm.</p>
+        <h2 class="play-head">Play a game</h2>
+        <div class="play" id="playLinks"></div>
+      </section>
+
+      <section class="card">
+        <h2>What you landed</h2>
+        <div id="pinsBox"><p class="empty">No pins or spins yet.</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Funds</h2>
+        <div id="loadsBox"><p class="empty">Nothing yet. Tap Add funds to send a gift.</p></div>
+      </section>
+
+      <div class="acct-signout">
+        <button class="out" type="button" id="acctSignOut">Sign out</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="pt-over" id="ptLoadSheet">
+    <div class="sheet">
+      <button class="pt-x" type="button" data-close aria-label="Close">×</button>
+      <h3 id="ptSheetTitle">Add funds</h3>
+      <p class="pt-due pt-hide" id="ptDue">You owe <b id="ptDueAmt">$0</b></p>
+      <p class="sub" id="ptSheetSub">Add funds to your account. Your play code is <code id="ptSheetCode">PIG-XXXX</code>. She uses it to find your gift.</p>
+      <div class="pt-presets" id="ptPresets"></div>
+      <div class="pt-custom" id="ptCustomRow"><input id="ptCustom" type="number" min="1" step="1" placeholder="custom $"><button class="pt-add" type="button" id="ptUseCustom">Use</button></div>
+      <div id="ptThroneBlock">
+        <ol class="pt-steps">
+          <li>Copy your play code.</li>
+          <li>Open her Throne wishlist and paste the code in the gift note.</li>
+          <li>Come back and tap “I already sent it.” Your account stays pending until she confirms.</li>
+        </ol>
+        <div class="pt-payrow">
+          <button class="pt-thronebtn" type="button" id="ptThronePay">Pay via Throne</button>
+        </div>
+        <div class="pt-payrow" id="ptGiftLinks"></div>
+        <button class="pt-sent" type="button" id="ptSent">I already sent it</button>
+        <p class="pt-wait pt-hide" id="ptWait">Waiting for her to confirm that gift…</p>
+      </div>
+      <div id="ptStripeBlock" style="margin-top:14px">
+        <button class="pt-cardbtn" type="button" id="ptCard">Pay by card</button>
+      </div>
+      <p class="pt-testpay pt-hide" id="ptTestPayNote">Test mode — no real payment</p>
+      <p class="pt-demo pt-hide" id="ptDemoNote">Demo mode — no server is connected, so confirmation is simulated on this device only.</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="account.js"></script>
+</body>
+</html>

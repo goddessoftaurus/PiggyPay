@@ -2,18 +2,15 @@
   "use strict";
 
   var C = window.CONFIG || {};
-  var SITE = window.SITE_NAME || C.siteName || "PayPiggy";
-  document.title = SITE + " — Games";
+  document.title = "Piggy Play — Games";
 
   var brand = document.getElementById("hubBrand");
-  if (brand) brand.textContent = String(SITE).toUpperCase();
+  if (brand) brand.textContent = "Piggy Play";
 
-  var who = document.getElementById("hubWho");
-  if (who) {
-    var name = String(C.displayName || "").trim();
-    var handle = String(C.handle || "").trim();
-    who.textContent = name && handle ? (name + "  " + handle) : (name || handle);
-    if (!who.textContent) who.style.display = "none";
+  var handleEl = document.getElementById("hubHandle");
+  if (handleEl) {
+    var handle = String(C.handle || "@goddessoftaurus").trim() || "@goddessoftaurus";
+    handleEl.textContent = handle;
   }
 
   var back = document.querySelector("a.back:not(.back-games)");
@@ -23,7 +20,28 @@
   }
 
   var code = "";
-  try { code = new URLSearchParams(location.search || "").get("code") || ""; } catch (e) {}
+  var signedOut = "";
+  try {
+    var params = new URLSearchParams(location.search || "");
+    code = params.get("code") || "";
+    signedOut = (params.get("signedout") || "").trim();
+  } catch (e) {}
+  var note = document.getElementById("hubNote");
+  if (note && signedOut) {
+    var saved = signedOut === "1" ? "your play code" : signedOut.toUpperCase();
+    note.textContent = "Save your code " + saved + " to get back in";
+    note.classList.remove("hide");
+    try {
+      var u = new URL(location.href);
+      u.searchParams.delete("signedout");
+      var q = u.searchParams.toString();
+      history.replaceState({}, "", u.pathname + (q ? "?" + q : "") + u.hash);
+    } catch (e2) {}
+  }
+  var acct = document.querySelector("a.hub-account");
+  if (acct) {
+    acct.href = code ? ("/account.html?code=" + encodeURIComponent(code)) : "/account.html";
+  }
   function withCode(page) {
     if (!code) return page;
     return page + (page.indexOf("?") >= 0 ? "&" : "?") + "code=" + encodeURIComponent(code);

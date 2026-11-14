@@ -62,8 +62,18 @@
     } catch (e) {}
     return href;
   }
+  function accountHref() {
+    var href = "/account.html";
+    try {
+      var code = new URLSearchParams(location.search || "").get("code") || "";
+      if (code) href += "?code=" + encodeURIComponent(code);
+    } catch (e) {}
+    return href;
+  }
   Array.prototype.forEach.call(document.querySelectorAll("a.back"), function (a) {
-    a.href = a.classList.contains("back-games") ? gamesHubHref() : BACK_LINK;
+    if (a.classList.contains("back-games")) a.href = gamesHubHref();
+    else if (a.classList.contains("back-account")) a.href = accountHref();
+    else a.href = BACK_LINK;
     a.removeAttribute("target");
   });
   if (IS_HUM) root.classList.add("wh-humiliation");

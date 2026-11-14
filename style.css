@@ -1,8 +1,18 @@
 /* PayPiggy — shared styles (link-in-bio + game)
    Pink + rich red palette. Tweak the :root variables to recolor everything. */
 
+@font-face{
+  font-family:"Matcha Style";
+  src:url("/assets/fonts/MatchaStyle.woff2") format("woff2"),
+      url("/assets/fonts/MatchaStyle.ttf") format("truetype"),
+      url("/assets/fonts/MatchaStyle.otf") format("opentype");
+  font-weight:400;
+  font-style:normal;
+  font-display:swap;
+}
+
 :root{
-  --font-display:'Luckiest Guy',system-ui,sans-serif;
+  --font-display:"Matcha Style","Luckiest Guy",cursive;
   --font-body:'Fredoka',system-ui,sans-serif;
 
   /* Palette — tweak these to recolor the whole site */

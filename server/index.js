@@ -444,9 +444,11 @@ function createApp() {
 
   const ANALYTICS_HTML = path.join(__dirname, "analytics.html");
   const TEST_HTML = path.join(__dirname, "test-play.html");
+  const ACCOUNT_HTML = path.join(ROOT, "account.html");
   app.get("/admin", (req, res) => res.sendFile(ADMIN_HTML));
   app.get(["/admin/analytics", "/admin/analytics.html"], (req, res) => res.sendFile(ANALYTICS_HTML));
   app.get(["/admin/test", "/admin/test.html"], (req, res) => res.sendFile(TEST_HTML));
+  app.get(["/account", "/account.html"], (req, res) => res.sendFile(ACCOUNT_HTML));
 
   app.get("/", (req, res, next) => {
     const page = rootPageTarget();
@@ -475,6 +477,7 @@ if (require.main === module) {
     console.log("  Admin:     http://localhost:" + port + "/admin");
     console.log("  Analytics: http://localhost:" + port + "/admin/analytics");
     console.log("  Test play: http://localhost:" + port + "/admin/test");
+    console.log("  Account:   http://localhost:" + port + "/account");
     const rootPage = rootPageTarget();
     if (rootPage) console.log("  Root / :  http://localhost:" + port + "/" + rootPage + "  (ROOT_PAGE)");
     else console.log("  Games:    http://localhost:" + port + "/  (games hub)");

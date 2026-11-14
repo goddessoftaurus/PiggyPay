@@ -1,4 +1,4 @@
-/* PayPiggy games homepage — pink + red, handmade cards, Arial except PAYPIGGY. */
+/* PayPiggy games homepage — pink + red, handmade cards, Arial except the Piggy Play title. */
 body.games-hub{
   font:16px/1.5 Arial,Helvetica,sans-serif;
   padding:20px 16px 48px;
@@ -19,13 +19,14 @@ body.games-hub,body.games-hub .hub,body.games-hub a,body.games-hub p,body.games-
 }
 .hub-sign h1{
   margin:0;
-  font:400 clamp(40px,14vw,56px)/.95 'Luckiest Guy',cursive;
+  font:400 clamp(30px,9.6vw,46px)/.95 "Matcha Style","Luckiest Guy",cursive;
   color:#e8126b;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  font-family:'Luckiest Guy',cursive;
+  letter-spacing:0.3px;
+  text-transform:none;
+  font-family:"Matcha Style","Luckiest Guy",cursive;
 }
-.hub-who{margin:6px 0 0;font:700 14px/1.3 Arial,Helvetica,sans-serif;color:#b3001b}
+.hub-credit{margin:8px 0 0;font:700 15px/1.3 Arial,Helvetica,sans-serif;color:#3a0810}
+.hub-handle{margin:4px 0 0;font:italic 12px/1.3 Arial,Helvetica,sans-serif;color:#3a0810;opacity:.6}
 .hub-pick{margin:8px 0 0;font:700 15px/1.3 Arial,Helvetica,sans-serif;color:#3a0810;opacity:.85}
 .hub-cards{display:grid;gap:14px}
 .hub-card{
@@ -81,6 +82,20 @@ body.games-hub,body.games-hub .hub,body.games-hub a,body.games-hub p,body.games-
   opacity:.78;
 }
 .hub-admin a:hover,.hub-admin a:focus-visible{opacity:1}
+.hub-account-wrap{text-align:center;margin:4px 0 0}
+a.hub-account{
+  display:inline-block;text-align:center;text-decoration:none;color:#3a0810;
+  background:#ffc83d;font:800 15px/1 Arial,Helvetica,sans-serif;
+  padding:10px 18px;border-radius:999px;box-shadow:0 3px 0 #b3001b;
+}
+a.hub-account:active{transform:translateY(2px);box-shadow:0 1px 0 #b3001b}
+.hub-note{
+  background:#ffc83d;color:#3a0810;text-align:center;
+  font:700 14px/1.35 Arial,Helvetica,sans-serif;
+  padding:10px 12px;border-radius:14px;border:2px solid #3a0810;
+  box-shadow:0 3px 0 #b3001b;
+}
+.hub-note.hide{display:none!important}
 
 @media (max-width:400px){
   .hub-copy b{font-size:16px}

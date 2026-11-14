@@ -81,7 +81,9 @@ Set `ADMIN_PASSWORD`, and optionally the Stripe keys and `PUBLIC_URL`. Start com
 
 If you host more than one copy of this app (for example one site for the poster game and one for the wheel) against the same `DATABASE_URL`, they share player balances. Each request uses the host it was actually served on for Stripe return URLs; `PUBLIC_URL` is only a fallback when the request has no host. By default `/` is the combined games homepage (`/games.html`, also at `/games`). The original links page stays at `/index.html`. Set `ROOT_PAGE=wheel.html` (or `game.html` / `humiliation.html`) on a service if you want `/` to open that game instead; the query string is kept (`/?code=PIG-XXXX` becomes `/wheel.html?code=PIG-XXXX`).
 
-"Back to links" on the game pages goes to `backLinkUrl` in `config.js` (default `https://linktr.ee/crystal98xo`) in the same tab. "Back to games" goes to the games homepage; on any host other than the hub it uses `gamesHubUrl` (default `https://piggyplay.onrender.com/games.html`) so every site funnels to one homepage. The homepage has a modest **Admin** link to `/admin` (still password-protected, with analytics and test play from there).
+"Back to links" on the game pages goes to `backLinkUrl` in `config.js` (default `https://linktr.ee/crystal98xo`) in the same tab. "Back to games" goes to the games homepage; on any host other than the hub it uses `gamesHubUrl` (default `https://piggyplay.onrender.com/games.html`) so every site funnels to one homepage. The homepage has a modest **Admin** link to `/admin` (still password-protected, with analytics and test play from there). Players have a **My account** page at `/account` with their play code, balance, pin/spin history, funds history, Add funds (the same Throne + card sheet), links to the three games, and a Sign out button. Signing out clears the session on that device and returns to the games homepage with a reminder to save the play code.
+
+Cartoon titles (PAYPIGGY and other display type) use the self-hosted **Matcha Style** font by Khurasan (`assets/fonts/`), with Luckiest Guy and cursive as fallbacks. Body text is Arial.
 
 ## Keeping balances safe: `DATABASE_URL`
 
