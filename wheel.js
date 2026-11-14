@@ -80,7 +80,7 @@
     '<header class="pt-head"><div class="brand" id="ptBrand"></div><h1 id="ptTitle"></h1><p id="ptTag"></p></header>' +
     '<section class="pt-panel pt-gate" id="ptGate">' +
       '<h2>18+ only</h2>' +
-      '<p>This is a grown-up teasing game. Real gifts are confirmed by her \u2014 nothing on this page charges a card unless you choose Pay by card.</p>' +
+      '<p>This is a grown-up teasing game. Real gifts are confirmed by Goddess Mari. Nothing on this page charges a card unless you choose Pay by card.</p>' +
       '<button class="pt-go" type="button" id="ptStart">I\'m 18+, let me play</button>' +
       '<div class="pt-claim"><input id="ptResume" placeholder="Played before? Enter PIG-XXXX" maxlength="12"><button class="pt-add" type="button" id="ptResumeBtn">Open</button></div>' +
     '</section>' +
