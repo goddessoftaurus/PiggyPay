@@ -43,6 +43,12 @@
 
   var root = document.getElementById("paypiggy-game");
   if (!root) return;
+
+  var BACK_LINK = C.backLinkUrl || "https://linktr.ee/crystal98xo";
+  Array.prototype.forEach.call(document.querySelectorAll("a.back"), function (a) {
+    a.href = BACK_LINK;
+    a.removeAttribute("target");
+  });
   if (IS_HUM) root.classList.add("wh-humiliation");
 
   var TITLE = IS_HUM ? (HW.title || "Wheel of Humiliation") : (C.wheelTitle || "Wheel of Financial Torture");

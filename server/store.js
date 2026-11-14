@@ -116,6 +116,9 @@ function pgBackend(url) {
   return {
     kind: "postgres",
     init,
+    // Always SELECT from Postgres (FOR UPDATE inside mutations). There is no
+    // in-memory copy of the document, so two Render services sharing one
+    // DATABASE_URL always see each other's latest balances.
     async read(fn) {
       await init();
       const r = await pool.query("SELECT doc FROM " + TABLE + " WHERE id = 1");

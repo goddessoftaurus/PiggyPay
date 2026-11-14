@@ -79,6 +79,10 @@ If `ENABLE_STRIPE` is false, or the secret key is missing, the card button is hi
 
 Set `ADMIN_PASSWORD`, and optionally the Stripe keys and `PUBLIC_URL`. Start command is `npm start`. The app listens on `PORT` (default 3000).
 
+If you host more than one copy of this app (for example one site for the poster game and one for the wheel) against the same `DATABASE_URL`, they share player balances. Each request uses the host it was actually served on for Stripe return URLs; `PUBLIC_URL` is only a fallback when the request has no host. Set `ROOT_PAGE=wheel.html` (or `game.html` / `humiliation.html`) on a service if you want `/` to open that game instead of the links page; the query string is kept (`/?code=PIG-XXXX` becomes `/wheel.html?code=PIG-XXXX`).
+
+"Back to links" on the game pages goes to `backLinkUrl` in `config.js` (default `https://linktr.ee/crystal98xo`) in the same tab.
+
 ## Keeping balances safe: `DATABASE_URL`
 
 Without a database, player accounts are saved to `server/data/db.json`. That's fine on your own computer, but **free hosts like Render wipe that file every time the site restarts or wakes up from sleep**, so balances would disappear.
@@ -171,6 +175,7 @@ Keep `widget/`, `assets/`, `config.js`, `game.js`, `wheel.js`, and the CSS files
 - Link hrefs (`#YOUR_THRONE_URL`, `#YOUR_YOUPAY_URL`, `#YOUR_CASHAPP_URL`, `#YOUR_LOYALFANS_URL`, socials)
 - `YOUR_BTC_ADDRESS`, `YOUR_ETH_ADDRESS`, `YOUR_SOL_ADDRESS`
 - `THRONE_URL`, optional `YOUPAY_URL` / `CASHAPP_URL`
+- `backLinkUrl` ("Back to links" on the game pages, same tab)
 - `PAYMENT_URL` (Pay up + `?amount=`)
 - `ENABLE_THRONE` / `ENABLE_STRIPE`
 - `SALES_GOAL` (analytics ring, dollars, default 1000)

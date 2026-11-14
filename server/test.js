@@ -2,7 +2,7 @@
 
 const http = require("http");
 const path = require("path");
-const { loadEnv, createApp, store, stripePay } = require("./index");
+const { loadEnv, createApp, store, stripePay, publicUrl } = require("./index");
 
 loadEnv();
 process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "test-admin";
@@ -362,6 +362,49 @@ function cookie(setCookie) {
   ok("analytics poster count unchanged", r.json.games.poster.count === posterBefore, JSON.stringify(r.json.games.poster));
   ok("analytics wheel count unchanged", r.json.games.wheel.count === wheelBefore, JSON.stringify(r.json.games.wheel));
   ok("analytics humiliation count unchanged", r.json.games.humiliation.count === humBefore, JSON.stringify(r.json.games.humiliation));
+
+  console.log("12. ROOT_PAGE, request-host URLs, and back-to-links");
+  r = await req(port, "GET", "/");
+  ok("GET / serves the links page when ROOT_PAGE is unset", r.status === 200 && !r.headers.location, "status=" + r.status + " loc=" + r.headers.location);
+
+  process.env.ROOT_PAGE = "wheel.html";
+  r = await req(port, "GET", "/");
+  ok("ROOT_PAGE redirects / to /wheel.html", r.status === 302 && r.headers.location === "/wheel.html", "loc=" + r.headers.location);
+  r = await req(port, "GET", "/?code=PIG-TEST&x=1");
+  ok("ROOT_PAGE keeps the query string", r.status === 302 && r.headers.location === "/wheel.html?code=PIG-TEST&x=1", "loc=" + r.headers.location);
+  process.env.ROOT_PAGE = "/humiliation.html";
+  r = await req(port, "GET", "/?code=PIG-AA");
+  ok("ROOT_PAGE strips a leading slash", r.status === 302 && r.headers.location === "/humiliation.html?code=PIG-AA", "loc=" + r.headers.location);
+  process.env.ROOT_PAGE = "https://evil.example";
+  r = await req(port, "GET", "/");
+  ok("unsafe ROOT_PAGE is ignored", r.status === 200 && !r.headers.location, "status=" + r.status + " loc=" + r.headers.location);
+  delete process.env.ROOT_PAGE;
+
+  const prevPublic = process.env.PUBLIC_URL;
+  process.env.PUBLIC_URL = "https://hardcoded.example";
+  const fromHost = publicUrl({
+    headers: { "x-forwarded-proto": "https", "x-forwarded-host": "wheeloftorture.onrender.com" },
+    protocol: "http"
+  });
+  ok("request host wins over PUBLIC_URL", fromHost === "https://wheeloftorture.onrender.com", "got=" + fromHost);
+  const fromFallback = publicUrl({ headers: {}, protocol: "http" });
+  ok("PUBLIC_URL used when the request has no host", fromFallback === "https://hardcoded.example", "got=" + fromFallback);
+  if (prevPublic == null) delete process.env.PUBLIC_URL;
+  else process.env.PUBLIC_URL = prevPublic;
+
+  const fs = require("fs");
+  const path = require("path");
+  ok("backLinkUrl defaults to the Linktree", CONFIG.backLinkUrl === "https://linktr.ee/crystal98xo", "got=" + CONFIG.backLinkUrl);
+  for (const file of ["game.html", "wheel.html", "humiliation.html"]) {
+    const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+    const backs = html.match(/class="back[^"]*"[^>]*>/g) || [];
+    const allLinktree = (html.match(/class="back[^"]*"/g) || []).length >= 2
+      && html.includes('href="https://linktr.ee/crystal98xo">← back to links');
+    const leftover = /class="back[^"]*"[^>]*href="index\.html"/.test(html) || /href="index\.html"[^>]*class="back/.test(html);
+    const blank = /class="back[^"]*"[^>]*target="_blank"/.test(html);
+    ok(file + " back links go to Linktree in the same tab", allLinktree && !leftover && !blank,
+      "backs=" + backs.join(" | ") + " leftover=" + leftover);
+  }
 
   server.close();
   await store.close();

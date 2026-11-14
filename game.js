@@ -13,6 +13,12 @@
   var root = document.getElementById("paypiggy-game");
   if (!root) return;
 
+  var BACK_LINK = C.backLinkUrl || "https://linktr.ee/crystal98xo";
+  Array.prototype.forEach.call(document.querySelectorAll("a.back"), function (a) {
+    a.href = BACK_LINK;
+    a.removeAttribute("target");
+  });
+
   document.title = SITE + " — " + (C.gameTitle || "Pin the Tail on the Pig");
 
   var demo = true;

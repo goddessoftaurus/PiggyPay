@@ -83,6 +83,9 @@ const CONFIG = {
       { label: "Clothespins", text: "Wear a clothespin on each nipple for 5 minutes" }
     ]
   },
+  /* "Back to links" on the game pages. Opens in the same tab. */
+  backLinkUrl: "https://linktr.ee/crystal98xo",
+
   /* Pay up opens this URL with ?amount=<landed dollars> appended.
      Leave empty to fall back to the crypto section on the links page. */
   PAYMENT_URL: "",

@@ -84,10 +84,27 @@ function requireAdmin(req, res) {
 }
 
 function publicUrl(req) {
+  // Prefer the host the visitor actually hit so two Render services can share
+  // this code (and even the same PUBLIC_URL env). PUBLIC_URL is the fallback
+  // when the request has no host.
+  const headers = (req && req.headers) || {};
+  const host = String(headers["x-forwarded-host"] || headers.host || "").split(",")[0].trim();
+  if (host) {
+    const proto = String(headers["x-forwarded-proto"] || req.protocol || "http").split(",")[0].trim() || "http";
+    return proto + "://" + host;
+  }
   if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, "");
-  const proto = (req.headers["x-forwarded-proto"] || req.protocol || "http").split(",")[0].trim();
-  const host = req.headers["x-forwarded-host"] || req.headers.host;
-  return proto + "://" + host;
+  return "";
+}
+
+function rootPageTarget() {
+  const raw = String(process.env.ROOT_PAGE || "").trim();
+  if (!raw) return "";
+  const cleaned = raw.replace(/^\/+/, "");
+  if (!cleaned || cleaned.includes("..") || /[\\:]/.test(cleaned) || !/^[A-Za-z0-9._/-]+$/.test(cleaned)) {
+    return "";
+  }
+  return cleaned;
 }
 
 function pickSegment(segs) {
@@ -420,6 +437,15 @@ function createApp() {
   app.get("/admin", (req, res) => res.sendFile(ADMIN_HTML));
   app.get(["/admin/analytics", "/admin/analytics.html"], (req, res) => res.sendFile(ANALYTICS_HTML));
   app.get(["/admin/test", "/admin/test.html"], (req, res) => res.sendFile(TEST_HTML));
+
+  app.get("/", (req, res, next) => {
+    const page = rootPageTarget();
+    if (!page) return next();
+    const qIndex = req.url.indexOf("?");
+    const qs = qIndex >= 0 ? req.url.slice(qIndex) : "";
+    res.redirect(302, "/" + page + qs);
+  });
+
   app.use(express.static(ROOT, { extensions: ["html"] }));
 
   return app;
@@ -438,6 +464,8 @@ if (require.main === module) {
     console.log("  Admin:     http://localhost:" + port + "/admin");
     console.log("  Analytics: http://localhost:" + port + "/admin/analytics");
     console.log("  Test play: http://localhost:" + port + "/admin/test");
+    const rootPage = rootPageTarget();
+    if (rootPage) console.log("  Root / :  http://localhost:" + port + "/" + rootPage + "  (ROOT_PAGE)");
     if (!pw) console.log("  WARNING: ADMIN_PASSWORD is not set. Admin login will fail.");
     console.log("  Stripe checkout: " + (stripeEnabled() ? "on" : "off"));
     console.log("  Throne gifts:    " + (throneEnabled() ? "on" : "off"));
@@ -448,4 +476,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp, loadEnv, applyStripeCredit, pickSegment, resolvePin, store, stripePay };
+module.exports = { createApp, loadEnv, applyStripeCredit, pickSegment, resolvePin, store, stripePay, publicUrl, rootPageTarget };
