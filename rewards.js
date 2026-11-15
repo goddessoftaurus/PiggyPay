@@ -104,7 +104,7 @@
     var badges = (me.badges || []).map(function (b) { return '<span class="rw-badge">' + esc((b.emoji || "") + " " + b.title) + "</span>"; });
     if (me.nickname) badges.unshift('<span class="rw-badge">\ud83c\udff7\ufe0f ' + esc(me.nickname) + "</span>");
     return '<div class="rw-me">' +
-      "<small>Your Piggy Level</small><b>" + esc((lv.emoji || "") + " " + (lv.name || "Piglet")) + "</b>" +
+      "<small>Your Piggy Level</small><b>" + esc((lv.emoji || "") + " " + (lv.name || "Pathetic Piglet")) + "</b>" +
       '<div class="rw-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
       "<small>" + esc(money(lv.spent) + " confirmed \u00b7 " + nextTxt) + "</small>" +
       (badges.length ? '<div class="rw-badges">' + badges.join("") + "</div>" : "") +

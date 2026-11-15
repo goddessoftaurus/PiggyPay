@@ -17,6 +17,15 @@ if (process.env.TEST_DATABASE_URL) process.env.DATABASE_URL = process.env.TEST_D
 else delete process.env.DATABASE_URL;
 
 const app = createApp();
+
+// Spins are random; pin the odds where a test needs a predictable outcome
+// (otherwise an early "ALL" can empty the pocket and fail later steps).
+const realRandom = Math.random;
+function fixRandom(values) {
+  let k = 0;
+  Math.random = () => values[k++ % values.length];
+}
+function realOdds() { Math.random = realRandom; }
 const server = http.createServer(app);
 
 function listen() {
@@ -337,12 +346,14 @@ function cookie(setCookie) {
   ok("test pending load hidden from admin queue", r.status === 200 && !(r.json.pending || []).some((l) => l.code === testCode), JSON.stringify(r.json.pending));
   ok("test player hidden from real players list", !(r.json.players || []).some((l) => l.code === testCode), JSON.stringify(r.json.players));
 
+  fixRandom([0.01]);
   r = await req(port, "POST", "/api/pin", { headers: testAuth, body: {} });
   ok("test player can pin", r.status === 200 && r.json.result && r.json.result.charge > 0, r.text);
   r = await req(port, "POST", "/api/spin", { headers: testAuth, body: { game: "wheel" } });
   ok("test player can spin the money wheel", r.status === 200 && r.json.result && r.json.result.game === "wheel", r.text);
   r = await req(port, "POST", "/api/spin", { headers: testAuth, body: { game: "humiliation" } });
   ok("test player can spin humiliation", r.status === 200 && r.json.result && r.json.result.game === "humiliation" && r.json.result.charge === 500, r.text);
+  realOdds();
 
   r = await req(port, "GET", "/api/admin/test", { headers: { Cookie: adminCookie } });
   ok("test desk lists the player and history", r.status === 200 && (r.json.players || []).some((p) => p.id === testId && p.pins.length >= 3 && p.loads.length >= 3), r.text);
@@ -474,12 +485,14 @@ function cookie(setCookie) {
   ok("zone-test funds approved", r.status === 200 && r.json.player && r.json.player.balance === 50000, r.text);
 
   const pinResults = [];
+  fixRandom([0.02, 0.9, 0.3, 0.5, 0.15, 0.7, 0.4, 0.85]);
   for (let i = 0; i < 40; i++) {
     const pr = await req(port, "POST", "/api/pin", { headers: zoneAuth, body: { game: "poster" } });
     if (pr.status !== 200) break;
     pinResults.push(pr.json.result);
     if (pr.json.player.balance <= 0) break;
   }
+  realOdds();
   ok("server pins return a zone", pinResults.length > 0 && pinResults.every((x) => x.zone && x.zoneLabel && x.game === "poster"), JSON.stringify(pinResults[0]));
   ok("pins land in more than one zone over many throws", new Set(pinResults.map((x) => x.zone)).size >= 2, pinResults.map((x) => x.zone + ":" + x.label).join(", "));
   const bullCharge = pinResults.find((x) => x.zone === "bullseye");
@@ -650,28 +663,37 @@ function cookie(setCookie) {
     // Levels
     prog = rw.emptyProgress();
     let reached = rw.applySpend(prog, 5000, cfg);
-    ok("$50 stays Piglet", reached.length === 0 && rw.levelInfo(cfg, prog.spent).name === "Piglet");
+    ok("$50 stays Pathetic Piglet", reached.length === 0 && rw.levelInfo(cfg, prog.spent).name === "Pathetic Piglet");
     reached = rw.applySpend(prog, 60000, cfg);
-    ok("jumping to $650 reaches Pay Pig, Silver Pig and Golden Pig", reached.map((l) => l.name).join() === "Pay Pig,Silver Pig,Golden Pig", reached.map((l) => l.name).join());
+    ok("jumping to $650 reaches Basic Paypig, Silver Pig and Golden Pig", reached.map((l) => l.name).join() === "Basic Paypig,Silver Pig,Golden Pig", reached.map((l) => l.name).join());
     ok("level info shows the next level", rw.levelInfo(cfg, prog.spent).next.name === "Platinum Pig" && rw.levelInfo(cfg, prog.spent).next.toGo === 35000);
     reached = rw.applySpend(prog, 100, cfg);
     ok("levels are not re-awarded", reached.length === 0);
     reached = rw.applySpend(prog, 90000, cfg);
     ok("$1550 reaches Platinum Pig and Royal Hog", reached.map((l) => l.name).join() === "Platinum Pig,Royal Hog");
-    ok("ladder has six levels", cfg.levels.map((l) => l.name).join() === "Piglet,Pay Pig,Silver Pig,Golden Pig,Platinum Pig,Royal Hog");
+    ok("ladder has six levels", cfg.levels.map((l) => l.name).join() === "Pathetic Piglet,Basic Paypig,Silver Pig,Golden Pig,Platinum Pig,Royal Hog");
     // Progress saved under the old 4-level ladder (level index 2 = Golden Pig, no levelMin)
     const old = { spent: 60000, level: 2, counts: {}, spins: {} };
     reached = rw.applySpend(old, 1000, cfg);
     ok("old saved level doesn't re-award Golden Pig or Silver Pig", reached.length === 0 && old.levelMin === 50000 && old.level === 3, JSON.stringify(reached.map((l) => l.name)));
     reached = rw.applySpend(old, 40000, cfg);
     ok("old saved progress still reaches Platinum Pig next", reached.map((l) => l.name).join() === "Platinum Pig");
+    // Silver moved from $300 to $200: players who already passed it aren't re-awarded,
+    // players at Basic Paypig with $200+ get Silver on their next gift.
+    const passedOldSilver = { spent: 32000, level: 2, levelMin: 30000, counts: {}, spins: {} };
+    reached = rw.applySpend(passedOldSilver, 1000, cfg);
+    ok("old Silver ($300) holders don't get Silver again", reached.length === 0, JSON.stringify(reached.map((l) => l.name)));
+    const basicAt250 = { spent: 25000, level: 1, levelMin: 10000, counts: {}, spins: {} };
+    reached = rw.applySpend(basicAt250, 1000, cfg);
+    ok("Basic Paypig with $250 reaches Silver at the new $200 mark", reached.map((l) => l.name).join() === "Silver Pig");
+    ok("Silver Pig starts at $200", rw.levelInfo(cfg, 20000).name === "Silver Pig" && rw.levelInfo(cfg, 19999).name === "Basic Paypig");
     const w10 = cfg.games.wheel.rules.find((x) => x.id === "wheel-10");
     ok("10-spin wheel reward is the 5-minute video", w10.at === 10 && w10.title === "5-minute custom video");
 
     // Existing players get credit for gifts already confirmed, without retroactive claims
     const legacy = { id: "x", loads: [{ status: "approved", amount: 20000 }, { status: "rejected", amount: 0 }] };
     rw.ensureProgress(legacy, cfg);
-    ok("existing players keep confirmed spend for their level", legacy.rewards.spent === 20000 && legacy.rewards.level === 1 && legacy.rewards.levelMin === 10000);
+    ok("existing players keep confirmed spend for their level", legacy.rewards.spent === 20000 && legacy.rewards.level === 2 && legacy.rewards.levelMin === 20000);
 
     ok("leaderboard name never uses the play code", !rw.publicName({ id: "ply-1", code: "PIG-ABCD" }).includes("ABCD"));
   }
@@ -686,10 +708,12 @@ function cookie(setCookie) {
   await req(port, "POST", "/api/admin/test/credit", { headers: { Cookie: adminCookie }, body: { playerId: rwId, amount: 500 } });
   const rwAuth = { Authorization: "Bearer " + rwTok };
   let unlockedAt5 = null;
+  fixRandom([0.01]);
   for (let i = 1; i <= 5; i++) {
     r = await req(port, "POST", "/api/spin", { headers: rwAuth, body: { game: "wheel" } });
     if (i === 5) unlockedAt5 = r.json && r.json.result && r.json.result.unlocked;
   }
+  realOdds();
   ok("5th wheel spin returns Reward unlocked in the result", Array.isArray(unlockedAt5) && unlockedAt5.length === 1 && unlockedAt5[0].ruleId === "wheel-5" && unlockedAt5[0].test === true, JSON.stringify(unlockedAt5));
   r = await req(port, "GET", "/api/rewards", { headers: rwAuth });
   const wheelRule = r.json.games.wheel.rules.find((x) => x.id === "wheel-10");
@@ -698,7 +722,7 @@ function cookie(setCookie) {
   const w5 = r.json.me.claims.find((c) => c.ruleId === "wheel-5");
   ok("player sees the claim as pending + test", w5 && w5.status === "pending" && w5.test === true && r.json.me.test === true);
   ok("test player's play money counts toward its level", r.json.me.level.spent === 50000 && r.json.me.level.name === "Golden Pig", JSON.stringify(r.json.me.level));
-  ok("reaching a level queues a level-up reward", r.json.me.claims.filter((c) => c.kind === "level").map((c) => c.title).join() === "Reached Golden Pig,Reached Silver Pig,Reached Pay Pig");
+  ok("reaching a level queues a level-up reward", r.json.me.claims.filter((c) => c.kind === "level").map((c) => c.title).join() === "Reached Golden Pig,Reached Silver Pig,Reached Basic Paypig");
   r = await req(port, "GET", "/api/admin/rewards");
   ok("admin rewards queue requires a sign-in", r.status === 401);
   r = await req(port, "GET", "/api/admin/rewards", { headers: { Cookie: adminCookie } });

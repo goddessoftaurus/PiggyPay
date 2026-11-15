@@ -140,9 +140,9 @@ const CONFIG = {
     },
     /* Piggy Levels across all games, by total gifts she confirmed (dollars). */
     levels: [
-      { name: "Piglet",     min: 0,    emoji: "🐽", perks: ["Welcome to the pen"] },
-      { name: "Pay Pig",      min: 100,  emoji: "🐷", perks: ["Priority replies"] },
-      { name: "Silver Pig",   min: 300,  emoji: "🥈", perks: ["Priority replies", "5% off game spins (applied by Goddess)"] },
+      { name: "Pathetic Piglet", min: 0,    emoji: "🐽", perks: ["Welcome to the pen"] },
+      { name: "Basic Paypig", min: 100,  emoji: "🐷", perks: ["Priority replies"] },
+      { name: "Silver Pig",   min: 200,  emoji: "🥈", perks: ["Priority replies", "5% off game spins (applied by Goddess)"] },
       { name: "Golden Pig",   min: 500,  emoji: "🌟", perks: ["Priority replies", "10% off game spins (applied by Goddess)"] },
       { name: "Platinum Pig", min: 1000, emoji: "💎", perks: ["Priority replies", "15% off game spins (applied by Goddess)", "Bonus photo"] },
       { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set"] }
