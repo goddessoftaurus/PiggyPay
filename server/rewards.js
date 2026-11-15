@@ -81,6 +81,7 @@ function emptyProgress() {
     lastHum: null,
     spent: 0,
     level: 0,
+    levelMin: 0,
     counts: {}
   };
 }
@@ -93,7 +94,10 @@ function ensureProgress(p, cfg) {
     prog.spent = (p.loads || [])
       .filter((l) => l.status === "approved")
       .reduce((a, l) => a + Math.max(0, Number(l.amount) || 0), 0);
-    if (cfg) prog.level = levelIndex(cfg, prog.spent);
+    if (cfg) {
+      prog.level = levelIndex(cfg, prog.spent);
+      prog.levelMin = cfg.levels[prog.level].minCents;
+    }
     p.rewards = prog;
   }
   const r = p.rewards;
@@ -156,15 +160,21 @@ function levelIndex(cfg, spentCents) {
   return idx;
 }
 
-/* Record confirmed money. Returns the levels newly reached (above the first). */
+/* Record confirmed money. Returns the levels newly reached (above the first).
+   The reached level is remembered by its dollar threshold (levelMin), not its
+   position, so adding or reordering levels in config.js never re-awards one.
+   Progress saved before levelMin existed is settled from the spend so far. */
 function applySpend(prog, amountCents, cfg) {
   const amt = Math.max(0, Math.round(Number(amountCents) || 0));
-  prog.spent = (prog.spent || 0) + amt;
-  const before = Math.max(0, Math.round(num(prog.level, 0)));
-  const after = levelIndex(cfg, prog.spent);
-  const reached = [];
-  for (let i = before + 1; i <= after; i++) reached.push(cfg.levels[i]);
-  prog.level = Math.max(before, after);
+  const prevSpent = Math.max(0, Number(prog.spent) || 0);
+  const beforeMin = prog.levelMin != null && isFinite(Number(prog.levelMin))
+    ? Number(prog.levelMin)
+    : cfg.levels[levelIndex(cfg, prevSpent)].minCents;
+  prog.spent = prevSpent + amt;
+  const reached = cfg.levels.filter((l) => l.minCents > beforeMin && l.minCents <= prog.spent);
+  const now = levelIndex(cfg, prog.spent);
+  prog.level = now;
+  prog.levelMin = Math.max(beforeMin, cfg.levels[now].minCents);
   return reached;
 }
 

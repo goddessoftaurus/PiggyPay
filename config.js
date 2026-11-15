@@ -120,7 +120,7 @@ const CONFIG = {
         href: "wheel.html",
         rules: [
           { id: "wheel-5",     type: "count", stat: "spins", at: 5,  emoji: "📸", title: "Custom photo", desc: "A custom photo from Goddess." },
-          { id: "wheel-10",    type: "count", stat: "spins", at: 10, emoji: "🎬", title: "2-minute custom video", desc: "Two minutes of Goddess, made for you." },
+          { id: "wheel-10",    type: "count", stat: "spins", at: 10, emoji: "🎬", title: "5-minute custom video", desc: "Five minutes of Goddess, made for you." },
           { id: "wheel-25",    type: "count", stat: "spins", at: 25, emoji: "💬", title: "10 minutes of chat access", desc: "Ten minutes of chat with Goddess." },
           { id: "wheel-50",    type: "count", stat: "spins", at: 50, emoji: "👑", title: "Longer custom video or Hall of Shame shoutout", desc: "A longer video, or your name in the Hall of Shame." },
           { id: "wheel-bonus", type: "every", stat: "spins", at: 10, emoji: "🎁", title: "Bonus spin", desc: "Goddess picks a free task or tease for you." }
@@ -141,9 +141,11 @@ const CONFIG = {
     /* Piggy Levels across all games, by total gifts she confirmed (dollars). */
     levels: [
       { name: "Piglet",     min: 0,    emoji: "🐽", perks: ["Welcome to the pen"] },
-      { name: "Pay Pig",    min: 100,  emoji: "🐷", perks: ["Priority replies"] },
-      { name: "Golden Pig", min: 500,  emoji: "🌟", perks: ["Priority replies", "10% off game spins (applied by Goddess)"] },
-      { name: "Royal Hog",  min: 1500, emoji: "👑", perks: ["Priority replies", "10% off game spins (applied by Goddess)", "Monthly photo set"] }
+      { name: "Pay Pig",      min: 100,  emoji: "🐷", perks: ["Priority replies"] },
+      { name: "Silver Pig",   min: 300,  emoji: "🥈", perks: ["Priority replies", "5% off game spins (applied by Goddess)"] },
+      { name: "Golden Pig",   min: 500,  emoji: "🌟", perks: ["Priority replies", "10% off game spins (applied by Goddess)"] },
+      { name: "Platinum Pig", min: 1000, emoji: "💎", perks: ["Priority replies", "15% off game spins (applied by Goddess)", "Bonus photo"] },
+      { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set"] }
     ],
     leaderboard: {
       size: 3,

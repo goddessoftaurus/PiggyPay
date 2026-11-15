@@ -652,15 +652,26 @@ function cookie(setCookie) {
     let reached = rw.applySpend(prog, 5000, cfg);
     ok("$50 stays Piglet", reached.length === 0 && rw.levelInfo(cfg, prog.spent).name === "Piglet");
     reached = rw.applySpend(prog, 60000, cfg);
-    ok("jumping to $650 reaches Pay Pig and Golden Pig", reached.map((l) => l.name).join() === "Pay Pig,Golden Pig");
-    ok("level info shows the next level", rw.levelInfo(cfg, prog.spent).next.name === "Royal Hog" && rw.levelInfo(cfg, prog.spent).next.toGo === 85000);
+    ok("jumping to $650 reaches Pay Pig, Silver Pig and Golden Pig", reached.map((l) => l.name).join() === "Pay Pig,Silver Pig,Golden Pig", reached.map((l) => l.name).join());
+    ok("level info shows the next level", rw.levelInfo(cfg, prog.spent).next.name === "Platinum Pig" && rw.levelInfo(cfg, prog.spent).next.toGo === 35000);
     reached = rw.applySpend(prog, 100, cfg);
     ok("levels are not re-awarded", reached.length === 0);
+    reached = rw.applySpend(prog, 90000, cfg);
+    ok("$1550 reaches Platinum Pig and Royal Hog", reached.map((l) => l.name).join() === "Platinum Pig,Royal Hog");
+    ok("ladder has six levels", cfg.levels.map((l) => l.name).join() === "Piglet,Pay Pig,Silver Pig,Golden Pig,Platinum Pig,Royal Hog");
+    // Progress saved under the old 4-level ladder (level index 2 = Golden Pig, no levelMin)
+    const old = { spent: 60000, level: 2, counts: {}, spins: {} };
+    reached = rw.applySpend(old, 1000, cfg);
+    ok("old saved level doesn't re-award Golden Pig or Silver Pig", reached.length === 0 && old.levelMin === 50000 && old.level === 3, JSON.stringify(reached.map((l) => l.name)));
+    reached = rw.applySpend(old, 40000, cfg);
+    ok("old saved progress still reaches Platinum Pig next", reached.map((l) => l.name).join() === "Platinum Pig");
+    const w10 = cfg.games.wheel.rules.find((x) => x.id === "wheel-10");
+    ok("10-spin wheel reward is the 5-minute video", w10.at === 10 && w10.title === "5-minute custom video");
 
     // Existing players get credit for gifts already confirmed, without retroactive claims
     const legacy = { id: "x", loads: [{ status: "approved", amount: 20000 }, { status: "rejected", amount: 0 }] };
     rw.ensureProgress(legacy, cfg);
-    ok("existing players keep confirmed spend for their level", legacy.rewards.spent === 20000 && legacy.rewards.level === 1);
+    ok("existing players keep confirmed spend for their level", legacy.rewards.spent === 20000 && legacy.rewards.level === 1 && legacy.rewards.levelMin === 10000);
 
     ok("leaderboard name never uses the play code", !rw.publicName({ id: "ply-1", code: "PIG-ABCD" }).includes("ABCD"));
   }
@@ -669,7 +680,7 @@ function cookie(setCookie) {
   r = await req(port, "GET", "/api/rewards");
   ok("signed-out rewards list has all three games", r.status === 200 && r.json.games.poster.rules.length === 5 && r.json.games.wheel.rules.length === 5 && r.json.games.humiliation.rules.length === 4);
   ok("signed-out rewards list has no progress", !r.json.me && r.json.games.wheel.rules[0].current === undefined);
-  ok("signed-out list includes levels and leaderboard", r.json.levels.length === 4 && Array.isArray(r.json.leaderboard.top));
+  ok("signed-out list includes levels and leaderboard", r.json.levels.length === 6 && Array.isArray(r.json.leaderboard.top));
   r = await req(port, "POST", "/api/admin/test/player", { headers: { Cookie: adminCookie } });
   const rwTok = r.json.token, rwId = r.json.player.id, rwCode = r.json.player.code;
   await req(port, "POST", "/api/admin/test/credit", { headers: { Cookie: adminCookie }, body: { playerId: rwId, amount: 500 } });
@@ -687,7 +698,7 @@ function cookie(setCookie) {
   const w5 = r.json.me.claims.find((c) => c.ruleId === "wheel-5");
   ok("player sees the claim as pending + test", w5 && w5.status === "pending" && w5.test === true && r.json.me.test === true);
   ok("test player's play money counts toward its level", r.json.me.level.spent === 50000 && r.json.me.level.name === "Golden Pig", JSON.stringify(r.json.me.level));
-  ok("reaching a level queues a level-up reward", r.json.me.claims.filter((c) => c.kind === "level").map((c) => c.title).join() === "Reached Golden Pig,Reached Pay Pig");
+  ok("reaching a level queues a level-up reward", r.json.me.claims.filter((c) => c.kind === "level").map((c) => c.title).join() === "Reached Golden Pig,Reached Silver Pig,Reached Pay Pig");
   r = await req(port, "GET", "/api/admin/rewards");
   ok("admin rewards queue requires a sign-in", r.status === 401);
   r = await req(port, "GET", "/api/admin/rewards", { headers: { Cookie: adminCookie } });
