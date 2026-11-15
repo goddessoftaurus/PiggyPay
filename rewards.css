@@ -85,3 +85,28 @@
 body.games-hub .hub-rewards b,.hub-rewards b{display:block;font:700 18px/1.2 Arial,Helvetica,sans-serif;color:#800020;margin-bottom:3px}
 body.games-hub .hub-rewards small,.hub-rewards small{display:block;font:13px/1.35 Arial,Helvetica,sans-serif;opacity:.85}
 body .rw-game h3 a,body.games-hub .rw-game h3 a{font-family:inherit;font-weight:inherit;color:inherit;text-decoration:none}
+
+/* "You're THE Paypig" full-screen gold glitter pop-up */
+.rw-cel{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(circle at 50% 40%,#c40d52,#800020 55%,#2a0008);
+  animation:rwCelIn .5s ease-out both;overflow:hidden}
+.rw-cel canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.rw-cel-box{position:relative;text-align:center;max-width:520px;width:100%}
+.rw-cel-crown{font-size:56px;line-height:1;filter:drop-shadow(0 4px 10px rgba(255,200,61,.7));animation:rwBob 2.4s ease-in-out infinite}
+.rw-cel-test{display:inline-block;margin-bottom:10px;background:#ffc83d;color:#3a0810;font:800 11px/1 Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;border-radius:99px}
+.rw-gold{margin:10px 0 6px;font:400 clamp(46px,15vw,86px)/.95 "Matcha Style","Luckiest Guy",cursive;letter-spacing:1px;
+  background:linear-gradient(100deg,#8a5a00 0%,#ffd86b 18%,#fff7c2 26%,#ffc83d 36%,#b07a00 50%,#ffe28a 64%,#fffbe0 72%,#e0a800 84%,#8a5a00 100%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 3px 0 #5c0017) drop-shadow(0 0 14px rgba(255,214,90,.55));
+  animation:rwShimmer 3s linear infinite}
+.rw-gold-sub{margin:14px 0 22px;font:400 clamp(22px,7vw,34px)/1.1 "Matcha Style","Luckiest Guy",cursive;letter-spacing:.5px;
+  color:#ffd0e0;text-shadow:0 2px 0 #5c0017,0 0 12px rgba(255,77,141,.8)}
+.rw-gold-sub b{font-weight:400;color:#ffc83d;text-shadow:0 2px 0 #5c0017,0 0 14px rgba(255,200,61,.9)}
+.rw-cel-btn{border:2px solid #ffc83d;cursor:pointer;background:#800020;color:#fff;font:800 17px/1 Arial,Helvetica,sans-serif;
+  padding:15px 30px;border-radius:999px;box-shadow:0 4px 0 #5c0017,0 0 18px rgba(255,200,61,.45)}
+.rw-cel-btn:hover,.rw-cel-btn:focus-visible{background:#5c0017}
+@keyframes rwShimmer{from{background-position:100% 0}to{background-position:-150% 0}}
+@keyframes rwCelIn{from{opacity:0}to{opacity:1}}
+@keyframes rwBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+@media (prefers-reduced-motion:reduce){.rw-cel,.rw-gold,.rw-cel-crown{animation:none}}
+body .rw-cel h2.rw-gold,body .rw-cel p.rw-gold-sub,body .rw-cel p.rw-gold-sub b{font-family:"Matcha Style","Luckiest Guy",cursive!important;font-weight:400!important}

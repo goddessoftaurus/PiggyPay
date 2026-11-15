@@ -53,9 +53,17 @@ function normalizeConfig(raw) {
     }))
     .sort((a, b) => a.minCents - b.minCents);
   const lb = r.leaderboard || {};
+  const cel = r.celebration || null;
   return {
     games,
     levels,
+    celebration: cel ? {
+      id: String(cel.id || "celebration"),
+      atCents: Math.max(0, Math.round(num(cel.atDollars, 500) * 100)),
+      title: String(cel.title || ""),
+      subtitle: String(cel.subtitle || ""),
+      button: String(cel.button || "Continue")
+    } : null,
     leaderboard: {
       size: Math.max(1, Math.round(num(lb.size, 3))),
       title: String(lb.title || "This week's top piggies"),
@@ -309,7 +317,17 @@ function leaderboard(players, size, now) {
     .map((x, i) => ({ rank: i + 1, id: x.p.id, code: x.p.code, name: publicName(x.p), amount: x.amount }));
 }
 
+/* The pop-up to show this player now, or null. Shown once (p.seen[id]). */
+function pendingCelebration(p, prog, cfg) {
+  const cel = cfg.celebration;
+  if (!cel || !cel.title) return null;
+  if ((prog.spent || 0) < cel.atCents) return null;
+  if (p.seen && p.seen[cel.id]) return null;
+  return { id: cel.id, title: cel.title, subtitle: cel.subtitle, button: cel.button };
+}
+
 module.exports = {
+  pendingCelebration,
   GAMES,
   normalizeConfig,
   findRule,

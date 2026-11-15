@@ -507,10 +507,23 @@ function rewardsView(playerId) {
         spins: prog.spins
       },
       level: rewards.levelInfo(cfg, prog.spent || 0),
+      celebrate: rewards.pendingCelebration(p, prog, cfg),
       badges: claims.filter((c) => c.kind === "badge"),
       claims
     };
     return out;
+  });
+}
+
+function markCelebrationSeen(playerId, celId) {
+  const cfg = rcfg();
+  return mutate((db) => {
+    const p = db.players[playerId];
+    if (!p) return { error: "No player session." };
+    if (!cfg.celebration || cfg.celebration.id !== celId) return { error: "Unknown pop-up." };
+    if (!p.seen || typeof p.seen !== "object") p.seen = {};
+    if (!p.seen[celId]) p.seen[celId] = Date.now();
+    return { ok: true };
   });
 }
 
@@ -732,6 +745,7 @@ module.exports = {
   rewardsView,
   adminRewards,
   resolveReward,
+  markCelebrationSeen,
   persist: async function () { /* every change is saved as it happens */ },
   close: () => (backend ? backend.close() : Promise.resolve()),
   _pgConfig: pgConfig,

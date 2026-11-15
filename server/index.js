@@ -281,6 +281,14 @@ function createApp() {
     res.json(await store.rewardsView(p ? p.id : null));
   }));
 
+  app.post("/api/rewards/seen", wrap(async (req, res) => {
+    const p = await requirePlayer(req, res);
+    if (!p) return;
+    const out = await store.markCelebrationSeen(p.id, String((req.body && req.body.id) || ""));
+    if (out.error) return res.status(400).json({ error: out.error });
+    res.json(out);
+  }));
+
   app.post("/api/request-load", wrap(async (req, res) => {
     if (!throneEnabled()) return res.status(400).json({ error: "Throne gifts are turned off." });
     const p = await requirePlayer(req, res);

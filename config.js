@@ -147,6 +147,15 @@ const CONFIG = {
       { name: "Platinum Pig", min: 1000, emoji: "💎", perks: ["Priority replies", "15% off game spins (applied by Goddess)", "Bonus photo"] },
       { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set"] }
     ],
+    /* Full-screen gold glitter pop-up, shown once per player the first time
+       their confirmed gifts reach `atDollars`. */
+    celebration: {
+      id: "paypig-500",
+      atDollars: 500,
+      title: "You're THE Paypig",
+      subtitle: "Can you become the ROYAL HOG?",
+      button: "Keep paying, piggy"
+    },
     leaderboard: {
       size: 3,
       title: "This week's top piggies",

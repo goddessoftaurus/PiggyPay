@@ -242,8 +242,108 @@
     });
   }
 
+  /* ---------- "You're THE Paypig" pop-up ---------- */
+  var celShown = false;
+  function reduceMotion() { return !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
+
+  function glitter(canvas) {
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return function () {};
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = 0, H = 0, flakes = [], raf = 0, still = reduceMotion();
+    var golds = ["#ffd86b", "#fff3b0", "#ffc83d", "#e0a800", "#fffbe0", "#ffb3cc"];
+    function size() {
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function flake(top) {
+      return { x: Math.random() * W, y: top ? -10 - Math.random() * H : Math.random() * H,
+        r: 1.2 + Math.random() * 3.2, vy: 0.6 + Math.random() * 1.8, vx: -0.4 + Math.random() * 0.8,
+        a: Math.random() * 6.28, va: 0.05 + Math.random() * 0.12, c: golds[Math.floor(Math.random() * golds.length)],
+        star: Math.random() < 0.18 };
+    }
+    function draw(f) {
+      var tw = 0.55 + 0.45 * Math.abs(Math.sin(f.a));
+      ctx.globalAlpha = tw;
+      ctx.fillStyle = f.c;
+      if (f.star) {
+        var s = f.r * 2.4;
+        ctx.beginPath();
+        ctx.moveTo(f.x, f.y - s); ctx.lineTo(f.x + s * 0.25, f.y - s * 0.25); ctx.lineTo(f.x + s, f.y);
+        ctx.lineTo(f.x + s * 0.25, f.y + s * 0.25); ctx.lineTo(f.x, f.y + s); ctx.lineTo(f.x - s * 0.25, f.y + s * 0.25);
+        ctx.lineTo(f.x - s, f.y); ctx.lineTo(f.x - s * 0.25, f.y - s * 0.25); ctx.closePath(); ctx.fill();
+      } else {
+        ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.a);
+        ctx.fillRect(-f.r, -f.r * 0.6, f.r * 2, f.r * 1.2); ctx.restore();
+      }
+    }
+    size();
+    var n = still ? 60 : Math.min(220, Math.round(W * H / 2600));
+    for (var i = 0; i < n; i++) flakes.push(flake(false));
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      flakes.forEach(function (f) {
+        if (!still) {
+          f.y += f.vy; f.x += f.vx + Math.sin(f.a) * 0.3; f.a += f.va;
+          if (f.y > H + 10) { var nf = flake(true); f.x = nf.x; f.y = -10; }
+        }
+        draw(f);
+      });
+      ctx.globalAlpha = 1;
+      if (!still) raf = requestAnimationFrame(frame);
+    }
+    frame();
+    window.addEventListener("resize", size);
+    return function () { cancelAnimationFrame(raf); window.removeEventListener("resize", size); };
+  }
+
+  function markSeen(id) {
+    var headers = { "Content-Type": "application/json" };
+    var tok = token();
+    if (tok) headers.Authorization = "Bearer " + tok;
+    return fetch(API + "/api/rewards/seen", { method: "POST", headers: headers, credentials: "same-origin", body: JSON.stringify({ id: id }) })
+      .catch(function () {});
+  }
+
+  function celebrate(cel, isTest) {
+    if (!cel || celShown) return;
+    celShown = true;
+    var sub = esc(cel.subtitle).replace(/ROYAL HOG/, "<b>ROYAL HOG</b>");
+    var el = document.createElement("div");
+    el.className = "rw-cel";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.setAttribute("aria-label", cel.title);
+    el.innerHTML = '<canvas aria-hidden="true"></canvas><div class="rw-cel-box">' +
+      (isTest ? '<span class="rw-cel-test">Test player</span>' : "") +
+      '<div class="rw-cel-crown" aria-hidden="true">\ud83d\udc51</div>' +
+      '<h2 class="rw-gold">' + esc(cel.title) + "</h2>" +
+      '<p class="rw-gold-sub">' + sub + "</p>" +
+      '<button class="rw-cel-btn" type="button">' + esc(cel.button || "Continue") + "</button></div>";
+    document.body.appendChild(el);
+    var stop = glitter(el.querySelector("canvas"));
+    var btn = el.querySelector(".rw-cel-btn");
+    try { btn.focus({ preventScroll: true }); } catch (e) {}
+    // Remember it right away so it never repeats, even if they leave without tapping.
+    markSeen(cel.id);
+    function done() {
+      stop();
+      if (el.parentNode) el.parentNode.removeChild(el);
+      document.removeEventListener("keydown", onKey);
+    }
+    function onKey(e) { if (e.key === "Escape") done(); }
+    btn.addEventListener("click", done);
+    document.addEventListener("keydown", onKey);
+  }
+
+  function checkCelebration(data) {
+    if (data && data.me && data.me.celebrate) celebrate(data.me.celebrate, !!data.me.test);
+  }
+
   function renderInline(el, opts) {
     return load().then(function (data) {
+      checkCelebration(data);
       el.innerHTML = render(data, opts);
       el.classList.add("rw-inline");
     });
@@ -259,13 +359,14 @@
     if (GAME) addGameButtons();
     var hubBtn = document.getElementById("hubRewards");
     if (hubBtn) hubBtn.addEventListener("click", function () { open(null); });
-    refresh();
+    if (document.getElementById("acctRewards")) refresh();
+    else if (token()) load().then(checkCelebration);
     try {
       if (/[?&]rewards=1/.test(location.search)) open(GAME || null);
     } catch (e) {}
   }
 
-  window.PiggyRewards = { open: open, close: close, onResult: onResult, refresh: refresh, render: render };
+  window.PiggyRewards = { celebrate: celebrate, open: open, close: close, onResult: onResult, refresh: refresh, render: render };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();

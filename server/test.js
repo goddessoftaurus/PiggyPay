@@ -739,6 +739,40 @@ function cookie(setCookie) {
   ok("player sees the reward as sent", r.json.me.claims.find((c) => c.ruleId === "wheel-5").status === "sent");
   const realBoard = (await req(port, "GET", "/api/rewards")).json.leaderboard.top;
   ok("public leaderboard has no play codes", !JSON.stringify(realBoard).includes("PIG-"));
+  console.log("18. You're THE Paypig pop-up");
+  {
+    const rw = require("./rewards");
+    const { CONFIG } = require("../config");
+    const cfg = rw.normalizeConfig(CONFIG.rewards);
+    ok("pop-up text is configured", cfg.celebration.title === "You're THE Paypig" && /ROYAL HOG/.test(cfg.celebration.subtitle) && cfg.celebration.atCents === 50000);
+    ok("no pop-up under $500", rw.pendingCelebration({}, { spent: 49999 }, cfg) === null);
+    ok("pop-up at $500", rw.pendingCelebration({}, { spent: 50000 }, cfg).title === "You're THE Paypig");
+    ok("no pop-up once seen", rw.pendingCelebration({ seen: { "paypig-500": 1 } }, { spent: 90000 }, cfg) === null);
+  }
+  r = await req(port, "POST", "/api/admin/test/player", { headers: { Cookie: adminCookie } });
+  const celAuth = { Authorization: "Bearer " + r.json.token };
+  const celId = r.json.player.id;
+  await req(port, "POST", "/api/admin/test/credit", { headers: { Cookie: adminCookie }, body: { playerId: celId, amount: 499 } });
+  r = await req(port, "GET", "/api/rewards", { headers: celAuth });
+  ok("$499 player gets no pop-up", r.json.me && !r.json.me.celebrate);
+  await req(port, "POST", "/api/admin/test/credit", { headers: { Cookie: adminCookie }, body: { playerId: celId, amount: 1 } });
+  r = await req(port, "GET", "/api/rewards", { headers: celAuth });
+  ok("crossing $500 queues the pop-up", r.json.me.celebrate && r.json.me.celebrate.id === "paypig-500" && r.json.me.celebrate.subtitle === "Can you become the ROYAL HOG?", JSON.stringify(r.json.me.celebrate));
+  r = await req(port, "POST", "/api/rewards/seen", { body: { id: "paypig-500" } });
+  ok("marking seen needs a player session", r.status === 401);
+  r = await req(port, "POST", "/api/rewards/seen", { headers: celAuth, body: { id: "nope" } });
+  ok("unknown pop-up id is rejected", r.status === 400);
+  r = await req(port, "POST", "/api/rewards/seen", { headers: celAuth, body: { id: "paypig-500" } });
+  ok("pop-up marked seen", r.status === 200 && r.json.ok);
+  r = await req(port, "GET", "/api/rewards", { headers: celAuth });
+  ok("pop-up doesn't repeat", !r.json.me.celebrate);
+  // Players already above $500 before the pop-up existed still see it once
+  const legacyCel = { id: "x", loads: [{ status: "approved", amount: 120000 }] };
+  require("./rewards").ensureProgress(legacyCel, require("./rewards").normalizeConfig(require("../config").CONFIG.rewards));
+  ok("players already past $500 see it once", !!require("./rewards").pendingCelebration(legacyCel, legacyCel.rewards, require("./rewards").normalizeConfig(require("../config").CONFIG.rewards)));
+  r = await req(port, "GET", "/api/rewards");
+  ok("signed-out visitors never get the pop-up", !r.json.me);
+
   for (const file of ["game.html", "wheel.html", "humiliation.html", "games.html", "account.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     ok(file + " loads the rewards panel", html.includes('src="rewards.js"') && html.includes('href="rewards.css"'));
