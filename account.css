@@ -76,11 +76,12 @@ body.account code{font:700 14px ui-monospace,Menlo,Consolas,monospace;background
 .play-head{margin-top:16px}
 .play{display:grid;gap:8px}
 .play a{
-  display:block;text-align:center;text-decoration:none;color:#3a0810;
-  background:#ffc83d;padding:11px 14px;border-radius:999px;
-  box-shadow:0 3px 0 var(--red-deep);font:800 15px Arial,Helvetica,sans-serif;
+  display:block;text-align:center;text-decoration:none;color:#fff;
+  background:#800020;padding:11px 14px;border-radius:999px;
+  box-shadow:0 3px 0 #5c0017;font:800 15px Arial,Helvetica,sans-serif;
 }
-.play a:active{transform:translateY(2px);box-shadow:0 1px 0 var(--red-deep)}
+.play a:hover,.play a:focus-visible{background:#5c0017}
+.play a:active{transform:translateY(2px);box-shadow:0 1px 0 #5c0017}
 .pending-note{margin:8px 0 0;font:700 13px Arial,Helvetica,sans-serif;color:var(--red-deep)}
 body.account .ribbon{
   background:var(--gold);color:var(--tx);
@@ -98,11 +99,12 @@ body.account th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;opac
 .acct-signout .out{font-size:15px}
 
 a.hub-account{
-  display:inline-block;text-align:center;text-decoration:none;color:#3a0810;
-  background:#ffc83d;font:800 15px/1 Arial,Helvetica,sans-serif;
-  padding:10px 18px;border-radius:999px;box-shadow:0 3px 0 #b3001b;
+  display:inline-block;text-align:center;text-decoration:none;color:#fff;
+  background:#800020;font:800 15px/1 Arial,Helvetica,sans-serif;
+  padding:10px 18px;border-radius:999px;box-shadow:0 3px 0 #5c0017;
 }
-a.hub-account:active{transform:translateY(2px);box-shadow:0 1px 0 #b3001b}
+a.hub-account:hover,a.hub-account:focus-visible{background:#5c0017}
+a.hub-account:active{transform:translateY(2px);box-shadow:0 1px 0 #5c0017}
 .hub-account-wrap{text-align:center;margin:2px 0 0}
 .hub-note{
   background:#ffc83d;color:#3a0810;text-align:center;

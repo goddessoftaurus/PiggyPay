@@ -99,7 +99,9 @@ body.game .pt-head h1,body.widget .pt-head h1{font:700 clamp(22px,6.5vw,30px)/1.
 .pt-banner b{display:block;font:700 22px/1.15 Arial,Helvetica,sans-serif;margin:4px 0 10px;text-shadow:0 2px 0 var(--pt-red-dark);letter-spacing:.3px}
 .pt-banner .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pt-banner a,.pt-banner button{display:block;text-decoration:none;font:700 16px Arial,Helvetica,sans-serif;padding:10px;border-radius:14px;letter-spacing:.3px}
-.pt-pay{background:var(--pt-gold);color:var(--pt-red-dark)!important}
+.pt-pay{background:#800020;color:#fff!important;box-shadow:0 3px 0 #5c0017}
+.pt-pay:hover,.pt-pay:focus-visible{background:#5c0017}
+.pt-pay:active{transform:translateY(2px);box-shadow:0 1px 0 #5c0017}
 .pt-again{background:var(--pt-cream)!important;color:var(--pt-red)!important}
 
 .pt-go,.pt button.pt-go{display:block;width:100%;margin-top:10px;background:linear-gradient(180deg,var(--pt-pink),var(--pt-red));color:#fff;

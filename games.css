@@ -84,11 +84,12 @@ body.games-hub,body.games-hub .hub,body.games-hub a,body.games-hub p,body.games-
 .hub-admin a:hover,.hub-admin a:focus-visible{opacity:1}
 .hub-account-wrap{text-align:center;margin:4px 0 0}
 a.hub-account{
-  display:inline-block;text-align:center;text-decoration:none;color:#3a0810;
-  background:#ffc83d;font:800 15px/1 Arial,Helvetica,sans-serif;
-  padding:10px 18px;border-radius:999px;box-shadow:0 3px 0 #b3001b;
+  display:inline-block;text-align:center;text-decoration:none;color:#fff;
+  background:#800020;font:800 15px/1 Arial,Helvetica,sans-serif;
+  padding:10px 18px;border-radius:999px;box-shadow:0 3px 0 #5c0017;
 }
-a.hub-account:active{transform:translateY(2px);box-shadow:0 1px 0 #b3001b}
+a.hub-account:hover,a.hub-account:focus-visible{background:#5c0017}
+a.hub-account:active{transform:translateY(2px);box-shadow:0 1px 0 #5c0017}
 .hub-note{
   background:#ffc83d;color:#3a0810;text-align:center;
   font:700 14px/1.35 Arial,Helvetica,sans-serif;

@@ -38,15 +38,19 @@
     .stat b{font:400 22px/1.1 "Matcha Style","Luckiest Guy",cursive}
     .btns{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
     .btns button,.play a,.ghost{
-      display:inline-block;text-align:center;text-decoration:none;color:var(--ink);
-      background:var(--gold);padding:10px 14px;border-radius:999px;box-shadow:0 3px 0 var(--deep);font:400 15px "Matcha Style","Luckiest Guy",cursive}
+      display:inline-block;text-align:center;text-decoration:none;color:#fff;
+      background:#800020;padding:10px 14px;border-radius:999px;box-shadow:0 3px 0 #5c0017;font:400 15px "Matcha Style","Luckiest Guy",cursive}
+    .btns button:hover,.play a:hover,.ghost:hover,.btns button:focus-visible,.play a:focus-visible,.ghost:focus-visible{background:#5c0017}
     .btns .zero{background:#ffd0e0;color:var(--deep)}
+    .btns .zero:hover,.btns .zero:focus-visible{background:#ffd0e0}
     .btns .new{background:linear-gradient(180deg,var(--pink),var(--red));color:#fff}
+    .btns .new:hover,.btns .new:focus-visible{background:linear-gradient(180deg,var(--pink),var(--red))}
     .play{display:grid;gap:8px;margin-top:8px}
-    .play a{box-shadow:0 3px 0 var(--deep)}
+    .play a{box-shadow:0 3px 0 #5c0017}
     .codes{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
     .codes button{background:#ffd0e0;color:var(--deep);padding:6px 10px;border-radius:999px;font:700 13px Fredoka,system-ui,sans-serif}
-    .codes button.on{background:var(--gold);box-shadow:0 2px 0 var(--deep)}
+    .codes button.on{background:#800020;color:#fff;box-shadow:0 2px 0 #5c0017}
+    .codes button.on:hover,.codes button.on:focus-visible{background:#5c0017}
     table{width:100%;border-collapse:collapse;font-size:14px}
     th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #ffd0e0;vertical-align:top}
     th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;opacity:.7}
