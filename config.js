@@ -88,6 +88,70 @@ const CONFIG = {
       { label: "Clothespins", text: "Wear a clothespin on each nipple for 5 minutes" }
     ]
   },
+  /* ----- Rewards (easy to edit) -----
+     Each game has a list of rewards. Rule types:
+       count  — unlocks once when `stat` reaches `at` (e.g. 3 bullseyes)
+       every  — unlocks every `at` plays (e.g. every 10th spin), repeats
+       streak — unlocks when `stat` hits `at` in a row (e.g. 3 misses), repeats
+       double — Wheel of Humiliation lands on the same task twice in a row, repeats
+     Stats: "bullseyes", "missStreak", "spins" (paid plays of that game).
+     `badge: true` shows a badge on the player's account right away (nothing to send).
+     `penalty: true` marks it as a punishment instead of a prize.
+     `nickname: true` lets you type a nickname when you mark it sent.
+     Every other reward goes to the Rewards queue on /admin. Nothing is sent automatically.
+     Change `id` only for a brand-new reward (old unlocks are tracked by id). */
+  rewards: {
+    games: {
+      poster: {
+        title: "Pin the Tail on the Pig",
+        emoji: "🐷",
+        href: "game.html",
+        rules: [
+          { id: "pin-bull-1",  type: "count",  stat: "bullseyes",  at: 1,  emoji: "🎯", title: "\u201cAccurate Piggy\u201d badge", desc: "A badge on your account to show off your aim.", badge: true },
+          { id: "pin-bull-3",  type: "count",  stat: "bullseyes",  at: 3,  emoji: "📸", title: "Custom photo", desc: "A custom photo from Goddess, just for you." },
+          { id: "pin-bull-5",  type: "count",  stat: "bullseyes",  at: 5,  emoji: "🎙️", title: "Personal voice note", desc: "Hear Goddess say your name." },
+          { id: "pin-bull-10", type: "count",  stat: "bullseyes",  at: 10, emoji: "🎬", title: "Short custom video", desc: "A short video made just for you." },
+          { id: "pin-clumsy",  type: "streak", stat: "missStreak", at: 3,  emoji: "🤡", title: "\u201cClumsy Piggy\u201d penalty", desc: "Clumsy piggies owe an extra tribute or a humiliation task.", penalty: true }
+        ]
+      },
+      wheel: {
+        title: "Wheel of Financial Torture",
+        emoji: "🎡",
+        href: "wheel.html",
+        rules: [
+          { id: "wheel-5",     type: "count", stat: "spins", at: 5,  emoji: "📸", title: "Custom photo", desc: "A custom photo from Goddess." },
+          { id: "wheel-10",    type: "count", stat: "spins", at: 10, emoji: "🎬", title: "2-minute custom video", desc: "Two minutes of Goddess, made for you." },
+          { id: "wheel-25",    type: "count", stat: "spins", at: 25, emoji: "💬", title: "10 minutes of chat access", desc: "Ten minutes of chat with Goddess." },
+          { id: "wheel-50",    type: "count", stat: "spins", at: 50, emoji: "👑", title: "Longer custom video or Hall of Shame shoutout", desc: "A longer video, or your name in the Hall of Shame." },
+          { id: "wheel-bonus", type: "every", stat: "spins", at: 10, emoji: "🎁", title: "Bonus spin", desc: "Goddess picks a free task or tease for you." }
+        ]
+      },
+      humiliation: {
+        title: "Wheel of Humiliation",
+        emoji: "😈",
+        href: "humiliation.html",
+        rules: [
+          { id: "hum-5",      type: "count",  stat: "spins", at: 5,  emoji: "📝", title: "Personalized humiliation task", desc: "A task Goddess writes just for you." },
+          { id: "hum-10",     type: "count",  stat: "spins", at: 10, emoji: "🏷️", title: "Degrading custom nickname", desc: "A nickname from Goddess, shown on your account.", nickname: true },
+          { id: "hum-20",     type: "count",  stat: "spins", at: 20, emoji: "🎬", title: "Custom humiliation clip", desc: "A humiliation clip made just for you." },
+          { id: "hum-double", type: "double", stat: "spins", at: 2,  emoji: "🔁", title: "\u201cDouble Shame\u201d", desc: "You owe the task double, and you unlock a bonus reward." }
+        ]
+      }
+    },
+    /* Piggy Levels across all games, by total gifts she confirmed (dollars). */
+    levels: [
+      { name: "Piglet",     min: 0,    emoji: "🐽", perks: ["Welcome to the pen"] },
+      { name: "Pay Pig",    min: 100,  emoji: "🐷", perks: ["Priority replies"] },
+      { name: "Golden Pig", min: 500,  emoji: "🌟", perks: ["Priority replies", "10% off game spins (applied by Goddess)"] },
+      { name: "Royal Hog",  min: 1500, emoji: "👑", perks: ["Priority replies", "10% off game spins (applied by Goddess)", "Monthly photo set"] }
+    ],
+    leaderboard: {
+      size: 3,
+      title: "This week's top piggies",
+      prize: "#1 gets a shoutout on Goddess's X"
+    }
+  },
+
   /* "Back to links" on the game pages. Opens in the same tab. */
   backLinkUrl: "https://linktr.ee/crystal98xo",
 

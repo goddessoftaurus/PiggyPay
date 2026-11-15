@@ -83,10 +83,12 @@
   function showDesk() {
     $("gateCard").classList.add("hide");
     $("desk").classList.remove("hide");
+    if ($("acctSignOutWrap")) $("acctSignOutWrap").classList.remove("hide");
   }
   function showGate() {
     $("desk").classList.add("hide");
     $("gateCard").classList.remove("hide");
+    if ($("acctSignOutWrap")) $("acctSignOutWrap").classList.add("hide");
   }
 
   function gameName(g) {
@@ -165,6 +167,7 @@
     renderPins();
     renderFunds();
     paintPayButtons();
+    if (window.PiggyRewards) window.PiggyRewards.refresh();
   }
 
   function renderPins() {

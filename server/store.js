@@ -17,13 +17,21 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const rewards = require("./rewards");
+const { CONFIG } = require("../config");
+
+let rewardsCfg = null;
+function rcfg() {
+  if (!rewardsCfg) rewardsCfg = rewards.normalizeConfig(CONFIG.rewards);
+  return rewardsCfg;
+}
 
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "db.json");
 const TABLE = "paypiggy_state";
 
 function empty() {
-  return { players: {}, pending: [], events: {} };
+  return { players: {}, pending: [], events: {}, rewardClaims: [] };
 }
 
 function normalize(doc) {
@@ -31,6 +39,7 @@ function normalize(doc) {
   if (!d.players || typeof d.players !== "object") d.players = {};
   if (!Array.isArray(d.pending)) d.pending = [];
   if (!d.events || typeof d.events !== "object") d.events = {};
+  if (!Array.isArray(d.rewardClaims)) d.rewardClaims = [];
   return d;
 }
 
@@ -194,6 +203,7 @@ function pub(db, p) {
     balance: p.balance,
     tab: p.tab,
     test: !!p.test,
+    nickname: p.nickname || "",
     pins: p.pins.slice(0, 20),
     loads: p.loads.slice(0, 20),
     pending: db.pending
@@ -239,7 +249,8 @@ function createPlayer(opts) {
       pins: [],
       loads: [],
       created: Date.now(),
-      test
+      test,
+      rewards: rewards.emptyProgress()
     };
     db.players[p.id] = p;
     return { player: pub(db, p), token };
@@ -290,6 +301,7 @@ function approveLoad(loadId, amountCents, source) {
     load.resolvedAt = Date.now();
     load.source = source || "admin";
     p.balance += amt;
+    awardSpend(db, p, amt);
     p.loads.unshift({
       id: load.id,
       amount: amt,
@@ -334,6 +346,7 @@ function credit(player, amountCents, source, eventId) {
     if (eventId) db.events[eventId] = Date.now();
     const amt = Math.max(0, Math.round(Number(amountCents) || 0));
     p.balance += amt;
+    awardSpend(db, p, amt);
     const rec = {
       id: uid("ld"),
       amount: amt,
@@ -395,6 +408,7 @@ function recordPin(player, result) {
     const p = db.players[id];
     if (!p) return null;
     applyPin(p, result);
+    result.unlocked = awardPlay(db, p, result);
     return pub(db, p);
   });
 }
@@ -417,7 +431,119 @@ function play(player, decide) {
       return out;
     }
     applyPin(p, result);
+    result.unlocked = awardPlay(db, p, result);
     return { ok: true, result, player: pub(db, p) };
+  });
+}
+
+/* ---------------- rewards ---------------- */
+
+function pushClaim(db, claim) {
+  db.rewardClaims.unshift(claim);
+  // Keep the document small: drop the oldest settled claims past 500.
+  if (db.rewardClaims.length > 500) {
+    for (let i = db.rewardClaims.length - 1; i >= 0 && db.rewardClaims.length > 500; i--) {
+      if (db.rewardClaims[i].status !== "pending") db.rewardClaims.splice(i, 1);
+    }
+  }
+}
+
+// Called inside the locked mutation right after a play is recorded.
+function awardPlay(db, p, result) {
+  const cfg = rcfg();
+  const prog = rewards.ensureProgress(p, cfg);
+  const hits = rewards.applyPlay(prog, result, cfg);
+  const ts = Date.now();
+  return hits.map((h) => {
+    const claim = rewards.makeClaim(p, h, ts);
+    pushClaim(db, claim);
+    return rewards.claimView(claim);
+  });
+}
+
+// Called inside the locked mutation whenever confirmed money lands.
+function awardSpend(db, p, amountCents) {
+  const cfg = rcfg();
+  const prog = rewards.ensureProgress(p, cfg);
+  const reached = rewards.applySpend(prog, amountCents, cfg);
+  for (const level of reached) pushClaim(db, rewards.makeClaim(p, { kind: "level", level }, Date.now()));
+}
+
+function rewardsCatalog(cfg) {
+  const games = {};
+  for (const g of rewards.GAMES) {
+    const game = cfg.games[g];
+    games[g] = { key: g, title: game.title, emoji: game.emoji, href: game.href, rules: game.rules.map((r) => rewards.ruleView(r, null, g)) };
+  }
+  return {
+    games,
+    levels: cfg.levels.map((l) => ({ name: l.name, emoji: l.emoji, min: l.min, perks: l.perks })),
+    leaderboard: { size: cfg.leaderboard.size, title: cfg.leaderboard.title, prize: cfg.leaderboard.prize }
+  };
+}
+
+/* Everything the Rewards panel needs. playerId is optional (signed-out = no progress). */
+function rewardsView(playerId) {
+  const cfg = rcfg();
+  return read((db) => {
+    const out = rewardsCatalog(cfg);
+    const p = playerId ? db.players[playerId] : null;
+    const board = rewards.leaderboard(Object.values(db.players), cfg.leaderboard.size, Date.now());
+    out.leaderboard.top = board.map((b) => ({ rank: b.rank, name: b.name, amount: b.amount, you: !!(p && b.id === p.id) }));
+    if (!p) return out;
+    const prog = rewards.ensureProgress(JSON.parse(JSON.stringify(p)), cfg);
+    for (const g of rewards.GAMES) {
+      out.games[g].rules = cfg.games[g].rules.map((r) => rewards.ruleView(r, prog, g));
+    }
+    const claims = db.rewardClaims.filter((c) => c.playerId === p.id).map(rewards.claimView);
+    out.me = {
+      code: p.code,
+      test: !!p.test,
+      nickname: p.nickname || "",
+      stats: {
+        bullseyes: prog.bullseyes,
+        misses: prog.misses,
+        missStreak: prog.missStreak,
+        spins: prog.spins
+      },
+      level: rewards.levelInfo(cfg, prog.spent || 0),
+      badges: claims.filter((c) => c.kind === "badge"),
+      claims
+    };
+    return out;
+  });
+}
+
+function adminRewards() {
+  const cfg = rcfg();
+  return read((db) => {
+    const list = db.rewardClaims.map((c) => Object.assign(rewards.claimView(c), { code: c.code, nickname: !!c.nickname }));
+    const pending = list.filter((c) => c.status === "pending");
+    const board = rewards.leaderboard(Object.values(db.players), cfg.leaderboard.size, Date.now());
+    return {
+      pending: pending.filter((c) => !c.test),
+      testPending: pending.filter((c) => c.test),
+      recent: list.filter((c) => c.status === "sent" || c.status === "denied").slice(0, 30),
+      leaderboard: board.map((b) => ({ rank: b.rank, code: b.code, name: b.name, amount: b.amount })),
+      prize: cfg.leaderboard.prize
+    };
+  });
+}
+
+function resolveReward(claimId, status, nickname) {
+  return mutate((db) => {
+    const c = db.rewardClaims.find((x) => x.id === claimId);
+    if (!c) return { error: "Reward not found." };
+    if (c.status !== "pending") return { error: "That reward is already settled." };
+    if (status !== "sent" && status !== "denied") return { error: "Pick sent or denied." };
+    c.status = status;
+    c.resolvedAt = Date.now();
+    const nick = String(nickname || "").replace(/[<>]/g, "").trim().slice(0, 40);
+    if (status === "sent" && c.nickname && nick) {
+      const p = db.players[c.playerId];
+      if (p) p.nickname = nick;
+    }
+    return { ok: true, claim: rewards.claimView(c) };
   });
 }
 
@@ -557,6 +683,7 @@ function creditTest(playerId, amountCents) {
     const amt = Math.max(0, Math.round(Number(amountCents) || 0));
     if (amt < 1) return { error: "Pick an amount to add." };
     p.balance += amt;
+    awardSpend(db, p, amt);
     p.loads.unshift({
       id: uid("ld"),
       amount: amt,
@@ -602,6 +729,9 @@ module.exports = {
   adminStats,
   creditTest,
   resetTestBalance,
+  rewardsView,
+  adminRewards,
+  resolveReward,
   persist: async function () { /* every change is saved as it happens */ },
   close: () => (backend ? backend.close() : Promise.resolve()),
   _pgConfig: pgConfig,

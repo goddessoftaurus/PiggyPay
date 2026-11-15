@@ -1,0 +1,87 @@
+/* Goddess Arcade — Rewards panel, account section, hub card */
+.rw-btn,a.back.back-rewards,button.back.back-rewards{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  background:#800020!important;color:#fff!important;border:1px solid #5c0017!important;
+  font:800 14px/1 Arial,Helvetica,sans-serif;padding:7px 13px;border-radius:99px;
+  box-shadow:0 2px 0 #5c0017;text-decoration:none}
+.rw-btn:hover,.rw-btn:focus-visible,.back-rewards:hover,.back-rewards:focus-visible{background:#5c0017!important}
+
+.rw-over{position:fixed;inset:0;z-index:80;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(60,0,15,.55);padding:12px}
+.rw-over.show{display:flex}
+@media (min-width:560px){.rw-over{align-items:center}}
+.rw-sheet{position:relative;width:100%;max-width:460px;max-height:88vh;overflow:auto;
+  background:#fff5f7;color:#3a0810;border-radius:24px;padding:18px 16px 20px;
+  border:3px solid #e0115f;box-shadow:0 14px 34px rgba(80,0,20,.45);font:15px/1.45 Arial,Helvetica,sans-serif}
+.rw-x{position:absolute;top:8px;right:10px;width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;
+  background:#ffd0e0;color:#b3001b;font:700 22px/1 Arial,Helvetica,sans-serif}
+.rw-title{font:400 30px/1 "Matcha Style","Luckiest Guy",cursive;color:#e0115f;text-align:center;margin:4px 30px 4px;letter-spacing:.5px}
+.rw-sub{text-align:center;margin:0 0 12px;font-size:13px;opacity:.8}
+.rw-test{display:block;margin:0 auto 10px;width:max-content;background:#ffc83d;color:#3a0810;font:800 11px/1 Arial,Helvetica,sans-serif;
+  letter-spacing:1px;text-transform:uppercase;padding:5px 10px;border-radius:99px}
+.rw-game{margin:0 0 14px}
+.rw-game h3{font:400 21px/1.1 "Matcha Style","Luckiest Guy",cursive;color:#b3001b;margin:0 0 8px;letter-spacing:.3px}
+.rw-game h3 a{color:inherit;text-decoration:none}
+.rw-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rw-item{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;
+  background:#fff;border:2px dashed #ff8fb8;border-radius:16px;padding:9px 10px}
+.rw-item .rw-ico{font-size:24px;line-height:1;text-align:center}
+.rw-item b{display:block;font:700 15px/1.2 Arial,Helvetica,sans-serif}
+.rw-item small{display:block;font-size:12.5px;opacity:.8;margin-top:2px}
+.rw-bar{height:7px;border-radius:99px;background:#ffd0e0;margin-top:6px;overflow:hidden}
+.rw-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff4d8d,#e0115f);border-radius:99px}
+.rw-prog{font:700 12px/1.2 Arial,Helvetica,sans-serif;color:#b3001b;margin-top:4px}
+.rw-state{font:800 11px/1 Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:.5px;
+  padding:6px 8px;border-radius:99px;white-space:nowrap;background:#ffd0e0;color:#b3001b}
+.rw-item.on{border-style:solid;border-color:#e0115f;background:linear-gradient(160deg,#fff,#ffe3ec)}
+.rw-item.on .rw-state{background:#800020;color:#fff}
+.rw-item.pen .rw-state{background:#3a0810;color:#fff}
+.rw-item.locked .rw-ico{filter:grayscale(.6);opacity:.75}
+
+.rw-levels{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rw-level{background:#fff;border:2px dashed #ff8fb8;border-radius:16px;padding:9px 10px;font-size:12.5px}
+.rw-level b{display:block;font:700 15px/1.2 Arial,Helvetica,sans-serif}
+.rw-level.cur{border-style:solid;border-color:#800020;background:#ffe3ec}
+.rw-level .rw-min{font-weight:700;color:#b3001b}
+.rw-me{background:linear-gradient(160deg,#e0115f,#b3001b);color:#fff;border-radius:18px;padding:12px 14px;margin:0 0 14px;text-align:center}
+.rw-me b{display:block;font:400 24px/1.1 "Matcha Style","Luckiest Guy",cursive;letter-spacing:.5px}
+.rw-me small{display:block;font-size:13px;opacity:.92;margin-top:3px}
+.rw-me .rw-bar{background:rgba(255,255,255,.3)}
+.rw-me .rw-bar i{background:#fff}
+.rw-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+.rw-badge{background:#fff;color:#800020;font:800 12px/1 Arial,Helvetica,sans-serif;padding:6px 10px;border-radius:99px}
+.rw-board{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rw-board li{display:flex;justify-content:space-between;gap:8px;background:#fff;border-radius:12px;padding:8px 12px;font-weight:700}
+.rw-board li.you{outline:2px solid #800020}
+.rw-board .empty,.rw-claims .empty{background:none;font-weight:400;opacity:.75;padding:4px 0}
+.rw-claims{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rw-claims li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;background:#fff;border-radius:12px;padding:8px 10px;font-size:13.5px}
+.rw-claims li b{font-weight:700}
+.rw-st{font:800 11px/1 Arial,Helvetica,sans-serif;text-transform:uppercase;padding:5px 8px;border-radius:99px;background:#ffd0e0;color:#b3001b}
+.rw-st.sent,.rw-st.earned{background:#800020;color:#fff}
+.rw-st.denied{background:#ddd;color:#555}
+.rw-h{font:400 20px/1.1 "Matcha Style","Luckiest Guy",cursive;color:#b3001b;margin:16px 0 8px;letter-spacing:.3px}
+.rw-note{text-align:center;font-size:12.5px;opacity:.8;margin:10px 0 0}
+.rw-signin{text-align:center;background:#ffe3ec;border-radius:14px;padding:10px;margin:0 0 12px;font-size:13.5px}
+.rw-signin a{color:#800020;font-weight:800}
+
+/* "Reward unlocked!" note inside the result banner */
+.rw-unlock{margin:2px 0 10px;background:#fff;color:#800020;border-radius:14px;padding:9px 10px;text-align:center;
+  animation:rwPop .5s cubic-bezier(.2,1.6,.4,1) both}
+.rw-unlock strong{display:block;font:400 20px/1 "Matcha Style","Luckiest Guy",cursive;color:#e0115f;letter-spacing:.5px}
+.rw-unlock span{display:block;font:700 14px/1.3 Arial,Helvetica,sans-serif;margin-top:4px}
+.rw-unlock em{display:block;font:400 12px/1.3 Arial,Helvetica,sans-serif;opacity:.8;margin-top:3px;font-style:normal}
+.rw-unlock.pen{background:#3a0810;color:#fff}
+.rw-unlock.pen strong{color:#ffc83d}
+@keyframes rwPop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.rw-unlock{animation:none}}
+
+/* Account page section + hub card */
+.rw-inline .rw-title{margin-top:0}
+.hub-rewards{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+  background:linear-gradient(160deg,#fff5f7,#ffd0e0);border:3px solid #800020;border-radius:22px;padding:12px 14px;
+  box-shadow:0 5px 0 #5c0017;color:#3a0810;font:15px/1.35 Arial,Helvetica,sans-serif}
+.hub-rewards .hub-emoji{font-size:34px}
+body.games-hub .hub-rewards b,.hub-rewards b{display:block;font:700 18px/1.2 Arial,Helvetica,sans-serif;color:#800020;margin-bottom:3px}
+body.games-hub .hub-rewards small,.hub-rewards small{display:block;font:13px/1.35 Arial,Helvetica,sans-serif;opacity:.85}
+body .rw-game h3 a,body.games-hub .rw-game h3 a{font-family:inherit;font-weight:inherit;color:inherit;text-decoration:none}

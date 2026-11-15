@@ -582,6 +582,133 @@ function cookie(setCookie) {
   r = await req(port, "GET", "/api/admin/test");
   ok("admin test desk still requires a sign-in", r.status === 401, "status=" + r.status);
 
+  console.log("16. Rewards milestone logic");
+  {
+    const rw = require("./rewards");
+    const { CONFIG } = require("../config");
+    const cfg = rw.normalizeConfig(CONFIG.rewards);
+    const ids = (hits) => hits.map((h) => h.rule.id);
+    // Pin the Tail: bullseyes and miss streaks
+    let prog = rw.emptyProgress();
+    let hits = rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    ok("1st bullseye unlocks the Accurate Piggy badge", ids(hits).join() === "pin-bull-1", ids(hits).join());
+    rw.applyPlay(prog, { game: "poster", zone: "inner" }, cfg);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    ok("2nd bullseye unlocks nothing", hits.length === 0);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    ok("3rd bullseye unlocks the custom photo", ids(hits).join() === "pin-bull-3", ids(hits).join());
+    rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    ok("5th bullseye unlocks the voice note", ids(hits).join() === "pin-bull-5");
+    for (let i = 0; i < 4; i++) rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    ok("10th bullseye unlocks the short video", ids(hits).join() === "pin-bull-10" && prog.bullseyes === 10);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "bullseye" }, cfg);
+    ok("count rewards never repeat", hits.length === 0);
+    rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    rw.applyPlay(prog, { game: "poster", zone: "outer" }, cfg);
+    ok("a non-miss breaks the miss streak", prog.missStreak === 0);
+    rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    ok("3 misses in a row unlocks Clumsy Piggy", ids(hits).join() === "pin-clumsy" && hits[0].rule.penalty, ids(hits).join());
+    ok("streak resets after the penalty", prog.missStreak === 0);
+    rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    hits = rw.applyPlay(prog, { game: "poster", zone: "miss" }, cfg);
+    ok("Clumsy Piggy can repeat", ids(hits).join() === "pin-clumsy" && prog.counts["pin-clumsy"] === 2);
+
+    // Wheel of Financial Torture
+    prog = rw.emptyProgress();
+    const wheelHits = [];
+    for (let i = 1; i <= 50; i++) wheelHits.push([i, ids(rw.applyPlay(prog, { game: "wheel" }, cfg))]);
+    const at = (n) => wheelHits[n - 1][1].join();
+    ok("wheel: 5 spins -> custom photo", at(5) === "wheel-5", at(5));
+    ok("wheel: 10 spins -> 2-minute video + bonus spin", at(10) === "wheel-10,wheel-bonus", at(10));
+    ok("wheel: 20 spins -> bonus spin only", at(20) === "wheel-bonus", at(20));
+    ok("wheel: 25 spins -> chat access", at(25) === "wheel-25", at(25));
+    ok("wheel: 50 spins -> longer video + bonus", at(50) === "wheel-50,wheel-bonus", at(50));
+    ok("wheel: 7 spins -> nothing", at(7) === "");
+    ok("wheel spins don't count toward other games", prog.spins.humiliation === 0 && prog.spins.poster === 0 && prog.spins.wheel === 50);
+
+    // Wheel of Humiliation
+    prog = rw.emptyProgress();
+    hits = rw.applyPlay(prog, { game: "humiliation", index: 1 }, cfg);
+    ok("humiliation: first spin unlocks nothing", hits.length === 0);
+    hits = rw.applyPlay(prog, { game: "humiliation", index: 1 }, cfg);
+    ok("humiliation: same task twice -> Double Shame", ids(hits).join() === "hum-double");
+    hits = rw.applyPlay(prog, { game: "humiliation", index: 1 }, cfg);
+    ok("humiliation: a third in a row starts a new pair", hits.length === 0);
+    rw.applyPlay(prog, { game: "humiliation", index: 2 }, cfg);
+    hits = rw.applyPlay(prog, { game: "humiliation", index: 3 }, cfg);
+    ok("humiliation: 5 spins -> personalized task", ids(hits).join() === "hum-5", ids(hits).join());
+    for (let i = 6; i <= 9; i++) rw.applyPlay(prog, { game: "humiliation", index: i % 2 ? 4 : 5 }, cfg);
+    hits = rw.applyPlay(prog, { game: "humiliation", index: 7 }, cfg);
+    ok("humiliation: 10 spins -> nickname", ids(hits).join() === "hum-10" && hits[0].rule.nickname, ids(hits).join());
+
+    // Levels
+    prog = rw.emptyProgress();
+    let reached = rw.applySpend(prog, 5000, cfg);
+    ok("$50 stays Piglet", reached.length === 0 && rw.levelInfo(cfg, prog.spent).name === "Piglet");
+    reached = rw.applySpend(prog, 60000, cfg);
+    ok("jumping to $650 reaches Pay Pig and Golden Pig", reached.map((l) => l.name).join() === "Pay Pig,Golden Pig");
+    ok("level info shows the next level", rw.levelInfo(cfg, prog.spent).next.name === "Royal Hog" && rw.levelInfo(cfg, prog.spent).next.toGo === 85000);
+    reached = rw.applySpend(prog, 100, cfg);
+    ok("levels are not re-awarded", reached.length === 0);
+
+    // Existing players get credit for gifts already confirmed, without retroactive claims
+    const legacy = { id: "x", loads: [{ status: "approved", amount: 20000 }, { status: "rejected", amount: 0 }] };
+    rw.ensureProgress(legacy, cfg);
+    ok("existing players keep confirmed spend for their level", legacy.rewards.spent === 20000 && legacy.rewards.level === 1);
+
+    ok("leaderboard name never uses the play code", !rw.publicName({ id: "ply-1", code: "PIG-ABCD" }).includes("ABCD"));
+  }
+
+  console.log("17. Rewards through the API");
+  r = await req(port, "GET", "/api/rewards");
+  ok("signed-out rewards list has all three games", r.status === 200 && r.json.games.poster.rules.length === 5 && r.json.games.wheel.rules.length === 5 && r.json.games.humiliation.rules.length === 4);
+  ok("signed-out rewards list has no progress", !r.json.me && r.json.games.wheel.rules[0].current === undefined);
+  ok("signed-out list includes levels and leaderboard", r.json.levels.length === 4 && Array.isArray(r.json.leaderboard.top));
+  r = await req(port, "POST", "/api/admin/test/player", { headers: { Cookie: adminCookie } });
+  const rwTok = r.json.token, rwId = r.json.player.id, rwCode = r.json.player.code;
+  await req(port, "POST", "/api/admin/test/credit", { headers: { Cookie: adminCookie }, body: { playerId: rwId, amount: 500 } });
+  const rwAuth = { Authorization: "Bearer " + rwTok };
+  let unlockedAt5 = null;
+  for (let i = 1; i <= 5; i++) {
+    r = await req(port, "POST", "/api/spin", { headers: rwAuth, body: { game: "wheel" } });
+    if (i === 5) unlockedAt5 = r.json && r.json.result && r.json.result.unlocked;
+  }
+  ok("5th wheel spin returns Reward unlocked in the result", Array.isArray(unlockedAt5) && unlockedAt5.length === 1 && unlockedAt5[0].ruleId === "wheel-5" && unlockedAt5[0].test === true, JSON.stringify(unlockedAt5));
+  r = await req(port, "GET", "/api/rewards", { headers: rwAuth });
+  const wheelRule = r.json.games.wheel.rules.find((x) => x.id === "wheel-10");
+  ok("signed-in rewards show progress", r.json.me && r.json.me.stats.spins.wheel === 5 && wheelRule.current === 5 && wheelRule.unlocked === false);
+  ok("unlocked reward shows as unlocked", r.json.games.wheel.rules.find((x) => x.id === "wheel-5").unlocked === true);
+  const w5 = r.json.me.claims.find((c) => c.ruleId === "wheel-5");
+  ok("player sees the claim as pending + test", w5 && w5.status === "pending" && w5.test === true && r.json.me.test === true);
+  ok("test player's play money counts toward its level", r.json.me.level.spent === 50000 && r.json.me.level.name === "Golden Pig", JSON.stringify(r.json.me.level));
+  ok("reaching a level queues a level-up reward", r.json.me.claims.filter((c) => c.kind === "level").map((c) => c.title).join() === "Reached Golden Pig,Reached Pay Pig");
+  r = await req(port, "GET", "/api/admin/rewards");
+  ok("admin rewards queue requires a sign-in", r.status === 401);
+  r = await req(port, "GET", "/api/admin/rewards", { headers: { Cookie: adminCookie } });
+  ok("test player claims are kept out of the real queue", r.status === 200 && !r.json.pending.some((c) => c.code === rwCode) && r.json.testPending.some((c) => c.ruleId === "wheel-5"));
+  ok("test players stay off the leaderboard", !r.json.leaderboard.some((b) => b.code === rwCode));
+  const claimId = r.json.testPending.find((c) => c.ruleId === "wheel-5").id;
+  r = await req(port, "POST", "/api/admin/rewards/" + claimId, { body: { status: "sent" } });
+  ok("marking a reward needs admin", r.status === 401);
+  r = await req(port, "POST", "/api/admin/rewards/" + claimId, { headers: { Cookie: adminCookie }, body: { status: "sent" } });
+  ok("admin marks a reward sent", r.status === 200 && r.json.claim.status === "sent");
+  r = await req(port, "POST", "/api/admin/rewards/" + claimId, { headers: { Cookie: adminCookie }, body: { status: "denied" } });
+  ok("a settled reward can't be changed again", r.status === 400);
+  r = await req(port, "GET", "/api/rewards", { headers: rwAuth });
+  ok("player sees the reward as sent", r.json.me.claims.find((c) => c.ruleId === "wheel-5").status === "sent");
+  const realBoard = (await req(port, "GET", "/api/rewards")).json.leaderboard.top;
+  ok("public leaderboard has no play codes", !JSON.stringify(realBoard).includes("PIG-"));
+  for (const file of ["game.html", "wheel.html", "humiliation.html", "games.html", "account.html"]) {
+    const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+    ok(file + " loads the rewards panel", html.includes('src="rewards.js"') && html.includes('href="rewards.css"'));
+  }
+
   server.close();
   await store.close();
   if (fails.length) {

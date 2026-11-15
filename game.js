@@ -469,6 +469,7 @@
         zoneEl.className = result.zone ? ("zone-" + result.zone) : "";
       }
       setPayHref();
+      if (window.PiggyRewards) window.PiggyRewards.onResult(result, $("ptResult").querySelector(".pt-banner"));
       $("ptResult").classList.add("show");
       $("ptPin").classList.add("pt-hide");
       if (result.value === "ALL" || result.charge >= 10000) {

@@ -273,6 +273,14 @@ function createApp() {
     res.json({ player: await store.publicPlayer(p) });
   }));
 
+  // Rewards list for the panels. Signed-in players also get their progress.
+  app.get("/api/rewards", wrap(async (req, res) => {
+    const tok = bearer(req);
+    const p = tok ? await store.findByToken(tok) : null;
+    res.setHeader("Cache-Control", "no-store");
+    res.json(await store.rewardsView(p ? p.id : null));
+  }));
+
   app.post("/api/request-load", wrap(async (req, res) => {
     if (!throneEnabled()) return res.status(400).json({ error: "Throne gifts are turned off." });
     const p = await requirePlayer(req, res);
@@ -411,6 +419,19 @@ function createApp() {
   app.post("/api/admin/loads/:id/reject", wrap(async (req, res) => {
     if (!requireAdmin(req, res)) return;
     const out = await store.rejectLoad(req.params.id);
+    if (out.error) return res.status(400).json({ error: out.error });
+    res.json(out);
+  }));
+
+  app.get("/api/admin/rewards", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json(await store.adminRewards());
+  }));
+
+  app.post("/api/admin/rewards/:id", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const status = req.body && req.body.status;
+    const out = await store.resolveReward(req.params.id, status, req.body && req.body.nickname);
     if (out.error) return res.status(400).json({ error: out.error });
     res.json(out);
   }));

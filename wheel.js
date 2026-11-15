@@ -605,6 +605,7 @@
         $("ptOwe").textContent = banner;
       }
       setPayHref();
+      if (window.PiggyRewards) window.PiggyRewards.onResult(result, $("ptResult").querySelector(".pt-banner"));
       $("ptResult").classList.add("show");
       $("ptPin").classList.add("pt-hide");
       if (!IS_HUM && (result.value === "ALL" || result.charge >= 10000)) { landSound(true); confetti(); }

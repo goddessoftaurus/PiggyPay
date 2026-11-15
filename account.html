@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="pintail.css">
   <link rel="stylesheet" href="account.css">
+  <link rel="stylesheet" href="rewards.css">
 </head>
 <body class="account">
   <div class="waves" aria-hidden="true">
@@ -77,9 +78,12 @@
         <div id="loadsBox"><p class="empty">Nothing yet. Tap Add funds to send a gift.</p></div>
       </section>
 
-      <div class="acct-signout">
-        <button class="out" type="button" id="acctSignOut">Sign out</button>
-      </div>
+    </div>
+
+    <section class="card" id="acctRewards"><p class="muted">Loading rewards…</p></section>
+
+    <div class="acct-signout hide" id="acctSignOutWrap">
+      <button class="out" type="button" id="acctSignOut">Sign out</button>
     </div>
   </main>
 
@@ -114,5 +118,6 @@
 
   <script src="config.js"></script>
   <script src="account.js"></script>
+  <script src="rewards.js"></script>
 </body>
 </html>

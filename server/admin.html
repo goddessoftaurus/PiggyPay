@@ -69,6 +69,16 @@
         <p class="muted">Match the play code to the gift note on Throne, then approve the amount you actually received.</p>
         <div id="pendingBox"><p class="empty">No gifts waiting.</p></div>
       </section>
+      <section class="card" id="rewardsCard">
+        <h2>Rewards queue</h2>
+        <p class="muted">Rewards players unlocked in the games. Send each one yourself, then mark it sent (or deny it). Nothing is sent automatically.</p>
+        <div id="rewardsBox"><p class="empty">No rewards waiting.</p></div>
+        <h2 style="margin-top:18px">This week's top piggies</h2>
+        <p class="muted" id="boardPrize"></p>
+        <div id="boardBox"><p class="empty">No gifts yet this week.</p></div>
+        <details style="margin-top:14px"><summary class="muted">Test player rewards</summary><div id="testRewardsBox"><p class="empty">None.</p></div></details>
+        <details style="margin-top:8px"><summary class="muted">Recently settled rewards</summary><div id="rewardsRecentBox"><p class="empty">None.</p></div></details>
+      </section>
       <section class="card">
         <h2>Recently settled</h2>
         <div id="recentBox"><p class="empty">Nothing yet.</p></div>
@@ -103,6 +113,7 @@
     }
 
     async function refresh() {
+      refreshRewards().catch(() => {});
       const s = await api("/api/admin/state");
       if (!s.pending.length) $("pendingBox").innerHTML = '<p class="empty">No gifts waiting.</p>';
       else {
@@ -120,6 +131,38 @@
         "<tr><td><code>" + p.code + "</code></td><td>" + money(p.balance) + "</td><td>" + money(p.tab) + "</td><td>" + p.pins + "</td></tr>"
       ), ["Code", "Pocket", "Tab", "Pins"]) : '<p class="empty">No one has played yet.</p>';
     }
+
+    const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const gameNames = { poster: "Pin the Tail", wheel: "Financial Torture", humiliation: "Humiliation", all: "All games" };
+    function rewardRows(list, actions) {
+      return table(list.map((c) => "<tr data-id=\"" + esc(c.id) + "\" data-nick=\"" + (c.nickname ? 1 : 0) + "\"><td><code>" + esc(c.code) + "</code></td>" +
+        "<td>" + esc(c.emoji) + " <b>" + esc(c.title) + "</b>" + (c.penalty ? " <span class=\"muted\">(penalty)</span>" : "") + "<div class=\"muted\">" + esc(gameNames[c.game] || c.game) + " · " + when(c.ts) + "</div></td>" +
+        "<td>" + (actions
+          ? "<div class=\"row-actions\">" + (c.nickname ? "<input class=\"amt nick\" placeholder=\"nickname\" maxlength=\"40\" style=\"width:120px\">" : "") +
+            "<button class=\"ok\" data-act=\"sent\">" + (c.penalty ? "Assigned" : "Mark sent") + "</button><button class=\"no\" data-act=\"denied\">Deny</button></div>"
+          : esc(c.status) + " · " + when(c.resolvedAt)) + "</td></tr>"
+      ), ["Code", "Reward", actions ? "Action" : "Settled"]);
+    }
+    async function refreshRewards() {
+      const r = await api("/api/admin/rewards");
+      $("rewardsBox").innerHTML = r.pending.length ? rewardRows(r.pending, true) : '<p class="empty">No rewards waiting.</p>';
+      $("testRewardsBox").innerHTML = r.testPending.length ? rewardRows(r.testPending, true) : '<p class="empty">None.</p>';
+      $("rewardsRecentBox").innerHTML = r.recent.length ? rewardRows(r.recent, false) : '<p class="empty">None.</p>';
+      $("boardPrize").textContent = r.prize || "";
+      $("boardBox").innerHTML = r.leaderboard.length ? table(r.leaderboard.map((b) =>
+        "<tr><td>#" + b.rank + "</td><td><code>" + esc(b.code) + "</code></td><td>" + esc(b.name) + "</td><td>" + money(b.amount) + "</td></tr>"
+      ), ["Rank", "Code", "Public name", "This week"]) : '<p class="empty">No gifts yet this week.</p>';
+    }
+    $("rewardsCard").addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const tr = btn.closest("tr");
+      const nick = tr.querySelector(".nick");
+      try {
+        await api("/api/admin/rewards/" + encodeURIComponent(tr.getAttribute("data-id")), { status: btn.dataset.act, nickname: nick ? nick.value : "" });
+        await refreshRewards();
+      } catch (err) { alert(err.message); }
+    });
 
     $("loginBtn").onclick = async () => {
       $("loginErr").textContent = "";
