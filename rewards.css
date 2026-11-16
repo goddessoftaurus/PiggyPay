@@ -110,3 +110,4 @@ body .rw-game h3 a,body.games-hub .rw-game h3 a{font-family:inherit;font-weight:
 @keyframes rwBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
 @media (prefers-reduced-motion:reduce){.rw-cel,.rw-gold,.rw-cel-crown{animation:none}}
 body .rw-cel h2.rw-gold,body .rw-cel p.rw-gold-sub,body .rw-cel p.rw-gold-sub b{font-family:"Matcha Style","Luckiest Guy",cursive!important;font-weight:400!important}
+.rw-claims li.empty,.rw-board li.empty{display:block;grid-column:1/-1;width:100%;text-align:left;font-size:13.5px;background:none;padding:4px 2px}
