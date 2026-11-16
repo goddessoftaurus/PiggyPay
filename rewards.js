@@ -246,12 +246,21 @@
   var celShown = false;
   function reduceMotion() { return !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
 
-  function glitter(canvas) {
+  var FLAKES = {
+    plain:    { colors: ["#ffd0e0", "#ff8fb8", "#ffffff", "#ff4d8d"], density: 0.35, stars: 0.08 },
+    silver:   { colors: ["#ffffff", "#e6e9ef", "#c0c6d0", "#9aa3b2", "#f4f6fa"], density: 0.65, stars: 0.14 },
+    gold:     { colors: ["#ffd86b", "#fff3b0", "#ffc83d", "#e0a800", "#fffbe0", "#ffb3cc"], density: 1, stars: 0.18 },
+    platinum: { colors: ["#ffffff", "#e8f6ff", "#bfe6ff", "#d9d2ff", "#9fd8ff"], density: 1.1, stars: 0.3 },
+    royal:    { colors: ["#ffd86b", "#fff3b0", "#ffc83d", "#e0a800", "#ffffff", "#ff4d8d"], density: 1.4, stars: 0.28 }
+  };
+
+  function glitter(canvas, style) {
+    var look = FLAKES[style] || FLAKES.gold;
     var ctx = canvas.getContext("2d");
     if (!ctx) return function () {};
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     var W = 0, H = 0, flakes = [], raf = 0, still = reduceMotion();
-    var golds = ["#ffd86b", "#fff3b0", "#ffc83d", "#e0a800", "#fffbe0", "#ffb3cc"];
+    var golds = look.colors;
     function size() {
       W = canvas.clientWidth; H = canvas.clientHeight;
       canvas.width = W * dpr; canvas.height = H * dpr;
@@ -261,7 +270,7 @@
       return { x: Math.random() * W, y: top ? -10 - Math.random() * H : Math.random() * H,
         r: 1.2 + Math.random() * 3.2, vy: 0.6 + Math.random() * 1.8, vx: -0.4 + Math.random() * 0.8,
         a: Math.random() * 6.28, va: 0.05 + Math.random() * 0.12, c: golds[Math.floor(Math.random() * golds.length)],
-        star: Math.random() < 0.18 };
+        star: Math.random() < look.stars };
     }
     function draw(f) {
       var tw = 0.55 + 0.45 * Math.abs(Math.sin(f.a));
@@ -279,7 +288,7 @@
       }
     }
     size();
-    var n = still ? 60 : Math.min(220, Math.round(W * H / 2600));
+    var n = Math.round((still ? 60 : Math.min(220, Math.round(W * H / 2600))) * look.density);
     for (var i = 0; i < n; i++) flakes.push(flake(false));
     function frame() {
       ctx.clearRect(0, 0, W, H);
@@ -309,20 +318,24 @@
   function celebrate(cel, isTest) {
     if (!cel || celShown) return;
     celShown = true;
-    var sub = esc(cel.subtitle).replace(/ROYAL HOG/, "<b>ROYAL HOG</b>");
+    var style = FLAKES[cel.style] ? cel.style : "gold";
+    var sub = esc(cel.subtitle)
+      .replace(/ROYAL HOG/, "<b>ROYAL HOG</b>")
+      .replace(/(\$[0-9][0-9,.]*)/, "<b>$1</b>");
+    var icon = style === "gold" || style === "royal" ? "\ud83d\udc51" : (cel.emoji || "\ud83d\udc37");
     var el = document.createElement("div");
-    el.className = "rw-cel";
+    el.className = "rw-cel lv-" + style;
     el.setAttribute("role", "dialog");
     el.setAttribute("aria-modal", "true");
     el.setAttribute("aria-label", cel.title);
     el.innerHTML = '<canvas aria-hidden="true"></canvas><div class="rw-cel-box">' +
       (isTest ? '<span class="rw-cel-test">Test player</span>' : "") +
-      '<div class="rw-cel-crown" aria-hidden="true">\ud83d\udc51</div>' +
+      '<div class="rw-cel-crown" aria-hidden="true">' + icon + "</div>" +
       '<h2 class="rw-gold">' + esc(cel.title) + "</h2>" +
       '<p class="rw-gold-sub">' + sub + "</p>" +
       '<button class="rw-cel-btn" type="button">' + esc(cel.button || "Continue") + "</button></div>";
     document.body.appendChild(el);
-    var stop = glitter(el.querySelector("canvas"));
+    var stop = glitter(el.querySelector("canvas"), style);
     var btn = el.querySelector(".rw-cel-btn");
     try { btn.focus({ preventScroll: true }); } catch (e) {}
     // Remember it right away so it never repeats, even if they leave without tapping.

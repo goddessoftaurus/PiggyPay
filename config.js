@@ -138,24 +138,26 @@ const CONFIG = {
         ]
       }
     },
-    /* Piggy Levels across all games, by total gifts she confirmed (dollars). */
+    /* Piggy Levels across all games, by total gifts she confirmed (dollars).
+       `popup` is the full-screen pop-up each player sees once for their level
+       (only the highest if they jump several). In `subline`, {toGo} becomes the
+       dollars still needed and {next} the next level's name.
+       `style`: "plain" | "silver" | "gold" | "platinum" | "royal".
+       Keep each popup `id` the same so players don't see it twice. */
     levels: [
-      { name: "Pathetic Piglet", min: 0,    emoji: "🐽", perks: ["Welcome to the pen"] },
-      { name: "Basic Paypig", min: 100,  emoji: "🐷", perks: ["Priority replies"] },
-      { name: "Silver Pig",   min: 200,  emoji: "🥈", perks: ["Priority replies", "5% off game spins (applied by Goddess)"] },
-      { name: "Golden Pig",   min: 500,  emoji: "🌟", perks: ["Priority replies", "10% off game spins (applied by Goddess)"] },
-      { name: "Platinum Pig", min: 1000, emoji: "💎", perks: ["Priority replies", "15% off game spins (applied by Goddess)", "Bonus photo"] },
-      { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set"] }
+      { name: "Pathetic Piglet", min: 0,    emoji: "🐽", perks: ["Welcome to the pen"],
+        popup: { id: "level-piglet",   style: "plain",    title: "You're a Pathetic Piglet", subline: "Pay {toGo} to become a {next}\u2026 keep playing, piggy", button: "Start paying, piglet" } },
+      { name: "Basic Paypig", min: 100,  emoji: "🐷", perks: ["Priority replies"],
+        popup: { id: "level-basic",    style: "plain",    title: "You're a Basic Paypig", subline: "Just basic. Pay {toGo} more to become a {next}\u2026", button: "Keep paying, piggy" } },
+      { name: "Silver Pig",   min: 200,  emoji: "🥈", perks: ["Priority replies", "5% off game spins (applied by Goddess)"],
+        popup: { id: "level-silver",   style: "silver",   title: "You're a Silver Pig", subline: "Shiny, but not gold. Pay {toGo} more to become a {next}\u2026", button: "Keep paying, piggy" } },
+      { name: "Golden Pig",   min: 500,  emoji: "🌟", perks: ["Priority replies", "10% off game spins (applied by Goddess)"],
+        popup: { id: "paypig-500",     style: "gold",     title: "You're THE Paypig", subline: "Can you become the ROYAL HOG?", button: "Keep paying, piggy" } },
+      { name: "Platinum Pig", min: 1000, emoji: "💎", perks: ["Priority replies", "15% off game spins (applied by Goddess)", "Bonus photo"],
+        popup: { id: "level-platinum", style: "platinum", title: "You're a Platinum Pig", subline: "So close to the crown. Pay {toGo} more to become the {next}\u2026", button: "Keep paying, piggy" } },
+      { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set"],
+        popup: { id: "level-royal",    style: "royal",    title: "You're the ROYAL HOG", subline: "The top of the pen. Now keep your crown, piggy.", button: "Long live the Hog" } }
     ],
-    /* Full-screen gold glitter pop-up, shown once per player the first time
-       their confirmed gifts reach `atDollars`. */
-    celebration: {
-      id: "paypig-500",
-      atDollars: 500,
-      title: "You're THE Paypig",
-      subtitle: "Can you become the ROYAL HOG?",
-      button: "Keep paying, piggy"
-    },
     leaderboard: {
       size: 3,
       title: "This week's top piggies",

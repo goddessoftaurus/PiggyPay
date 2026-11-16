@@ -111,3 +111,37 @@ body .rw-game h3 a,body.games-hub .rw-game h3 a{font-family:inherit;font-weight:
 @media (prefers-reduced-motion:reduce){.rw-cel,.rw-gold,.rw-cel-crown{animation:none}}
 body .rw-cel h2.rw-gold,body .rw-cel p.rw-gold-sub,body .rw-cel p.rw-gold-sub b{font-family:"Matcha Style","Luckiest Guy",cursive!important;font-weight:400!important}
 .rw-claims li.empty,.rw-board li.empty{display:block;grid-column:1/-1;width:100%;text-align:left;font-size:13.5px;background:none;padding:4px 2px}
+
+/* Level looks: plainer at the bottom of the ladder, fancier at the top */
+.rw-cel.lv-plain{background:radial-gradient(circle at 50% 40%,#ff8fb8,#e0115f 55%,#800020)}
+body .rw-cel.lv-plain h2.rw-gold{background:none;-webkit-text-fill-color:#fff5f7;color:#fff5f7;font-size:clamp(40px,12.5vw,70px)!important;
+  filter:none;text-shadow:0 4px 0 #800020,0 0 0 transparent;animation:none}
+.rw-cel.lv-plain .rw-gold-sub{color:#fff;text-shadow:0 2px 0 #800020}
+.rw-cel.lv-plain .rw-gold-sub b{color:#ffd0e0;text-shadow:0 2px 0 #800020}
+.rw-cel.lv-plain .rw-cel-btn{border-color:#ffd0e0;box-shadow:0 4px 0 #5c0017}
+.rw-cel.lv-plain .rw-cel-crown{filter:none}
+
+.rw-cel.lv-silver{background:radial-gradient(circle at 50% 40%,#d0306f,#800020 58%,#2a0008)}
+.rw-cel.lv-silver h2.rw-gold{background-image:linear-gradient(100deg,#6b7280 0%,#e5e7eb 18%,#ffffff 26%,#c0c6d0 38%,#7c8494 50%,#eef0f4 64%,#ffffff 72%,#a7afbd 86%,#6b7280 100%);
+  filter:drop-shadow(0 3px 0 #5c0017) drop-shadow(0 0 12px rgba(230,233,239,.5))}
+.rw-cel.lv-silver .rw-gold-sub b{color:#eef0f4;text-shadow:0 2px 0 #5c0017,0 0 12px rgba(255,255,255,.8)}
+.rw-cel.lv-silver .rw-cel-btn{border-color:#e5e7eb;box-shadow:0 4px 0 #5c0017,0 0 16px rgba(230,233,239,.45)}
+.rw-cel.lv-silver .rw-cel-crown{filter:drop-shadow(0 4px 10px rgba(230,233,239,.7))}
+
+.rw-cel.lv-platinum{background:radial-gradient(circle at 50% 38%,#5b2a6e,#3a0820 55%,#12000a)}
+.rw-cel.lv-platinum h2.rw-gold{background-image:linear-gradient(100deg,#8fb8d8 0%,#e8f6ff 15%,#ffffff 24%,#bfe6ff 34%,#d9d2ff 46%,#ffffff 58%,#a9dcff 70%,#f2ecff 82%,#8fb8d8 100%);
+  filter:drop-shadow(0 3px 0 #2a0018) drop-shadow(0 0 18px rgba(191,230,255,.75));animation-duration:2.2s}
+.rw-cel.lv-platinum .rw-gold-sub{color:#f2ecff;text-shadow:0 2px 0 #2a0018,0 0 12px rgba(217,210,255,.8)}
+.rw-cel.lv-platinum .rw-gold-sub b{color:#bfe6ff;text-shadow:0 2px 0 #2a0018,0 0 14px rgba(191,230,255,.95)}
+.rw-cel.lv-platinum .rw-cel-btn{border-color:#bfe6ff;box-shadow:0 4px 0 #2a0018,0 0 22px rgba(191,230,255,.6)}
+.rw-cel.lv-platinum .rw-cel-crown{filter:drop-shadow(0 0 16px rgba(191,230,255,.9))}
+
+.rw-cel.lv-royal{background:radial-gradient(circle at 50% 36%,#7a0a3c,#4a0018 50%,#0f0005)}
+.rw-cel.lv-royal::before{content:"";position:absolute;inset:-40%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,rgba(255,200,61,.13) 0deg 8deg,transparent 8deg 20deg);animation:rwRays 26s linear infinite}
+body .rw-cel.lv-royal h2.rw-gold{font-size:clamp(50px,16.5vw,96px)!important;animation-duration:2s;
+  filter:drop-shadow(0 4px 0 #3a0010) drop-shadow(0 0 24px rgba(255,214,90,.85))}
+.rw-cel.lv-royal .rw-cel-crown{font-size:76px;filter:drop-shadow(0 0 22px rgba(255,200,61,.95))}
+.rw-cel.lv-royal .rw-cel-btn{background:linear-gradient(180deg,#a0002a,#800020);border:3px solid #ffc83d;box-shadow:0 4px 0 #3a0010,0 0 28px rgba(255,200,61,.7)}
+@keyframes rwRays{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rw-cel.lv-royal::before{animation:none}}

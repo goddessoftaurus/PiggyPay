@@ -520,9 +520,12 @@ function markCelebrationSeen(playerId, celId) {
   return mutate((db) => {
     const p = db.players[playerId];
     if (!p) return { error: "No player session." };
-    if (!cfg.celebration || cfg.celebration.id !== celId) return { error: "Unknown pop-up." };
+    const ids = rewards.popupIds(cfg);
+    const at = ids.indexOf(celId);
+    if (at < 0) return { error: "Unknown pop-up." };
     if (!p.seen || typeof p.seen !== "object") p.seen = {};
-    if (!p.seen[celId]) p.seen[celId] = Date.now();
+    // Seeing a level's pop-up also retires the lower ones (only the highest is shown).
+    for (let i = 0; i <= at; i++) if (!p.seen[ids[i]]) p.seen[ids[i]] = Date.now();
     return { ok: true };
   });
 }

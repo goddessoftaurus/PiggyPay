@@ -49,21 +49,20 @@ function normalizeConfig(raw) {
       min: Math.max(0, num(l.min, 0)),
       minCents: Math.max(0, Math.round(num(l.min, 0) * 100)),
       emoji: String(l.emoji || "🐷"),
-      perks: Array.isArray(l.perks) ? l.perks.map(String) : []
+      perks: Array.isArray(l.perks) ? l.perks.map(String) : [],
+      popup: l.popup && l.popup.id && l.popup.title ? {
+        id: String(l.popup.id),
+        style: ["plain", "silver", "gold", "platinum", "royal"].includes(l.popup.style) ? l.popup.style : "plain",
+        title: String(l.popup.title),
+        subline: String(l.popup.subline || ""),
+        button: String(l.popup.button || "Continue")
+      } : null
     }))
     .sort((a, b) => a.minCents - b.minCents);
   const lb = r.leaderboard || {};
-  const cel = r.celebration || null;
   return {
     games,
     levels,
-    celebration: cel ? {
-      id: String(cel.id || "celebration"),
-      atCents: Math.max(0, Math.round(num(cel.atDollars, 500) * 100)),
-      title: String(cel.title || ""),
-      subtitle: String(cel.subtitle || ""),
-      button: String(cel.button || "Continue")
-    } : null,
     leaderboard: {
       size: Math.max(1, Math.round(num(lb.size, 3))),
       title: String(lb.title || "This week's top piggies"),
@@ -317,17 +316,34 @@ function leaderboard(players, size, now) {
     .map((x, i) => ({ rank: i + 1, id: x.p.id, code: x.p.code, name: publicName(x.p), amount: x.amount }));
 }
 
-/* The pop-up to show this player now, or null. Shown once (p.seen[id]). */
+function dollars(cents) {
+  const d = Math.max(0, Number(cents) || 0) / 100;
+  return "$" + (d % 1 ? d.toFixed(2) : String(d));
+}
+
+/* The level pop-up to show this player now, or null. Only the player's
+   current (highest) level is ever shown, once per level (p.seen[id]). */
 function pendingCelebration(p, prog, cfg) {
-  const cel = cfg.celebration;
-  if (!cel || !cel.title) return null;
-  if ((prog.spent || 0) < cel.atCents) return null;
-  if (p.seen && p.seen[cel.id]) return null;
-  return { id: cel.id, title: cel.title, subtitle: cel.subtitle, button: cel.button };
+  const spent = Math.max(0, Number(prog.spent) || 0);
+  const i = levelIndex(cfg, spent);
+  const level = cfg.levels[i];
+  const pop = level && level.popup;
+  if (!pop) return null;
+  if (p.seen && p.seen[pop.id]) return null;
+  const next = cfg.levels[i + 1] || null;
+  const subline = pop.subline
+    .replace(/\{toGo\}/g, next ? dollars(next.minCents - spent) : "")
+    .replace(/\{next\}/g, next ? next.name : "");
+  return { id: pop.id, style: pop.style, level: level.name, emoji: level.emoji, title: pop.title, subtitle: subline, button: pop.button };
+}
+
+function popupIds(cfg) {
+  return cfg.levels.filter((l) => l.popup).map((l) => l.popup.id);
 }
 
 module.exports = {
   pendingCelebration,
+  popupIds,
   GAMES,
   normalizeConfig,
   findRule,
