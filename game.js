@@ -627,6 +627,21 @@
     return "";
   }
 
+  /* One gift request at a time: repeated taps reuse the request in flight and
+     the pay buttons stay disabled until it finishes. */
+  var loadInFlight = null;
+  function requestLoadOnce(amt) {
+    if (loadInFlight) return loadInFlight;
+    var btns = ["ptSent", "ptThronePay"].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    btns.forEach(function (b) { b.disabled = true; });
+    loadInFlight = api("/api/request-load", { body: { amount: amt } });
+    var release = function () {
+      setTimeout(function () { loadInFlight = null; btns.forEach(function (b) { b.disabled = false; }); }, 1500);
+    };
+    loadInFlight.then(release, release);
+    return loadInFlight;
+  }
+
   function markSent() {
     if (paymentsLocked()) return;
     var amt = pickAmt();
@@ -646,7 +661,7 @@
       }, 1200);
       return;
     }
-    api("/api/request-load", { body: { amount: amt } }).then(function (d) {
+    requestLoadOnce(amt).then(function (d) {
       applyPlayer(d.player);
       $("ptWait").classList.remove("pt-hide");
     }).catch(function (err) { alert(err.message); });
@@ -662,7 +677,7 @@
       markSent();
       return;
     }
-    api("/api/request-load", { body: { amount: amt } }).then(function (d) {
+    requestLoadOnce(amt).then(function (d) {
       applyPlayer(d.player);
       $("ptWait").classList.remove("pt-hide");
       window.open(url, "_blank", "noopener");

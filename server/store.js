@@ -271,11 +271,21 @@ function claimByCode(code) {
   });
 }
 
+const MAX_PENDING_PER_PLAYER = 5;
+
 function requestLoad(player, amountCents) {
   const id = idOf(player);
   return mutate((db) => {
     const p = db.players[id];
     if (!p) return null;
+    const mine = db.pending.filter((l) => l.playerId === p.id && l.status === "pending");
+    // Double taps / "Pay via Throne" then "I already sent it": the same amount
+    // already waiting is the same gift, so hand back that request.
+    const same = mine.find((l) => l.requested === amountCents);
+    if (same) return Object.assign({ duplicate: true }, same);
+    if (mine.length >= MAX_PENDING_PER_PLAYER) {
+      return { error: "You already have " + mine.length + " gifts waiting for her to confirm. Wait for her before sending more.", status: 429 };
+    }
     const load = {
       id: uid("ld"),
       playerId: p.id,
@@ -311,6 +321,28 @@ function approveLoad(loadId, amountCents, source) {
       requested: load.requested
     });
     return { ok: true, player: pub(db, p), load };
+  });
+}
+
+// Reject many pending requests in one locked change (admin bulk action).
+function rejectLoads(loadIds) {
+  const ids = Array.isArray(loadIds) ? loadIds.map(String).slice(0, 500) : [];
+  return mutate((db) => {
+    let rejected = 0;
+    const skipped = [];
+    for (const loadId of ids) {
+      const load = db.pending.find((l) => l.id === loadId);
+      if (!load || load.status !== "pending") { skipped.push(loadId); continue; }
+      load.status = "rejected";
+      load.resolvedAt = Date.now();
+      const p = db.players[load.playerId];
+      if (p) {
+        p.loads.unshift({ id: load.id, amount: 0, source: "admin", ts: Date.now(), status: "rejected", requested: load.requested });
+        if (p.loads.length > 60) p.loads.length = 60;
+      }
+      rejected++;
+    }
+    return { ok: true, rejected, skipped };
   });
 }
 
@@ -735,6 +767,7 @@ module.exports = {
   requestLoad,
   approveLoad,
   rejectLoad,
+  rejectLoads,
   credit,
   seenEvent,
   markEvent,

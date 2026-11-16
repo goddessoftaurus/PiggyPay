@@ -298,6 +298,7 @@ function createApp() {
     if (cents < 100) return res.status(400).json({ error: "Pick an amount of at least $1." });
     const load = await store.requestLoad(p, cents);
     if (!load) return res.status(401).json({ error: "No player session. Start a new one or enter your code." });
+    if (load.error) return res.status(load.status || 400).json({ error: load.error, player: await store.publicPlayer(p) });
     res.json({ ok: true, load: { id: load.id, requested: load.requested, ts: load.ts }, player: await store.publicPlayer(p) });
   }));
 
@@ -422,6 +423,13 @@ function createApp() {
     const out = await store.approveLoad(req.params.id, cents, "admin");
     if (out.error) return res.status(400).json({ error: out.error });
     res.json(out);
+  }));
+
+  app.post("/api/admin/loads/reject-many", wrap(async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const ids = req.body && req.body.ids;
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "Pick at least one request." });
+    res.json(await store.rejectLoads(ids));
   }));
 
   app.post("/api/admin/loads/:id/reject", wrap(async (req, res) => {

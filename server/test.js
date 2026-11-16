@@ -788,6 +788,43 @@ function cookie(setCookie) {
   r = await req(port, "GET", "/api/rewards");
   ok("signed-out visitors never get a pop-up", !r.json.me);
 
+  console.log("19. Duplicate gift requests and rejecting them");
+  r = await req(port, "POST", "/api/new", { body: {} });
+  const dupAuth = { Authorization: "Bearer " + r.json.token };
+  r = await req(port, "POST", "/api/request-load", { headers: dupAuth, body: { amount: 20 } });
+  const firstLoad = r.json.load.id;
+  const burst = await Promise.all(Array.from({ length: 20 }, () => req(port, "POST", "/api/request-load", { headers: dupAuth, body: { amount: 20 } })));
+  ok("20 repeat taps reuse the same request", burst.every((x) => x.status === 200 && x.json.load.id === firstLoad), burst.map((x) => x.status).join());
+  r = await req(port, "GET", "/api/me", { headers: dupAuth });
+  ok("only one $20 request is waiting", r.json.player.pending.length === 1);
+  for (const amt of [10, 30, 40, 50]) await req(port, "POST", "/api/request-load", { headers: dupAuth, body: { amount: amt } });
+  r = await req(port, "POST", "/api/request-load", { headers: dupAuth, body: { amount: 60 } });
+  ok("a 6th different waiting request is blocked", r.status === 429 && /waiting/.test(r.json.error), r.status + " " + r.text);
+  r = await req(port, "GET", "/api/me", { headers: dupAuth });
+  const waitingIds = r.json.player.pending.map((l) => l.id);
+  ok("five requests waiting", waitingIds.length === 5);
+  r = await req(port, "GET", "/api/admin/loads/" + waitingIds[0] + "/reject", { headers: { Cookie: adminCookie } });
+  ok("reject is not a GET route", r.status === 404 || !r.json);
+  r = await req(port, "POST", "/api/admin/loads/" + waitingIds[0] + "/reject", { headers: { Cookie: adminCookie }, body: {} });
+  ok("single reject works", r.status === 200 && r.json.ok, r.text);
+  r = await req(port, "POST", "/api/admin/loads/reject-many", { body: { ids: waitingIds.slice(1) } });
+  ok("bulk reject needs admin", r.status === 401);
+  r = await req(port, "POST", "/api/admin/loads/reject-many", { headers: { Cookie: adminCookie }, body: { ids: waitingIds } });
+  ok("bulk reject rejects the rest and skips settled ones", r.status === 200 && r.json.rejected === 4 && r.json.skipped.length === 1, r.text);
+  r = await req(port, "GET", "/api/me", { headers: dupAuth });
+  ok("nothing left waiting, balance untouched", r.json.player.pending.length === 0 && r.json.player.balance === 0);
+  r = await req(port, "POST", "/api/request-load", { headers: dupAuth, body: { amount: 20 } });
+  ok("after rejecting, a new $20 request is a fresh one", r.status === 200 && r.json.load.id !== firstLoad);
+  {
+    const adminHtml = fs.readFileSync(path.join(__dirname, "admin.html"), "utf8");
+    ok("admin Reject sends a POST (with a body)", /\/reject", \{\}\)/.test(adminHtml) && !/\/reject"\);/.test(adminHtml));
+    ok("admin has bulk reject buttons", adminHtml.includes("rejectSelBtn") && adminHtml.includes("dupBtn") && adminHtml.includes("reject-many"));
+    for (const f of ["game.js", "wheel.js", "account.js"]) {
+      const js = fs.readFileSync(path.join(__dirname, "..", f), "utf8");
+      ok(f + " guards gift requests against double taps", js.includes("function requestLoadOnce") && !js.includes('api("/api/request-load"', js.indexOf("function requestLoadOnce") + 400));
+    }
+  }
+
   for (const file of ["game.html", "wheel.html", "humiliation.html", "games.html", "account.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     ok(file + " loads the rewards panel", html.includes('src="rewards.js"') && html.includes('href="rewards.css"'));

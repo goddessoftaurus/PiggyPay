@@ -31,6 +31,12 @@
     .ok{background:#800020;color:#fff;padding:7px 12px;border-radius:999px}
     .ok:hover,.ok:focus-visible{background:#5c0017}
     .no{background:#ffd0e0;color:var(--deep);padding:7px 12px;border-radius:999px}
+    .bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 8px}
+    .bulk button[disabled]{opacity:.5;cursor:default}
+    tr.group td{background:#ffe3ec;font-weight:700;font-size:13px}
+    tr.group label{display:flex;gap:8px;align-items:center;cursor:pointer}
+    input.pick{width:18px;height:18px;padding:0;margin:0;accent-color:#800020}
+    tr.dup td{opacity:.75}
     .row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .muted{opacity:.7;font-size:13px}
     .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
@@ -67,6 +73,11 @@
           </div>
         </div>
         <p class="muted">Match the play code to the gift note on Throne, then approve the amount you actually received.</p>
+        <div class="bulk hide" id="bulkBar">
+          <button class="no" type="button" id="dupBtn">Reject duplicates</button>
+          <button class="no" type="button" id="rejectSelBtn" disabled>Reject selected (0)</button>
+          <span class="muted" id="bulkNote"></span>
+        </div>
         <div id="pendingBox"><p class="empty">No gifts waiting.</p></div>
       </section>
       <section class="card" id="rewardsCard">
@@ -103,7 +114,7 @@
       }
       const r = await fetch(path, opts);
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || "Request failed");
+      if (!r.ok) throw new Error(j.error || (r.status === 401 ? "Please sign in again." : "Request failed (" + r.status + ")"));
       return j;
     }
 
@@ -115,15 +126,37 @@
     async function refresh() {
       refreshRewards().catch(() => {});
       const s = await api("/api/admin/state");
+      $("bulkBar").classList.toggle("hide", !s.pending.length);
+      $("bulkNote").textContent = "";
       if (!s.pending.length) $("pendingBox").innerHTML = '<p class="empty">No gifts waiting.</p>';
       else {
-        $("pendingBox").innerHTML = table(s.pending.map((l) => {
-          const dollars = (l.requested / 100).toFixed(2);
-          return "<tr data-id=\"" + l.id + "\"><td><code>" + l.code + "</code></td><td>" + money(l.requested) + "</td><td class=\"muted\">" + when(l.ts) + "</td>" +
-            "<td><div class=\"row-actions\"><input class=\"amt\" type=\"number\" min=\"0\" step=\"0.01\" value=\"" + dollars + "\">" +
-            "<button class=\"ok\" data-act=\"ok\">Approve</button><button class=\"no\" data-act=\"no\">Reject</button></div></td></tr>";
-        }), ["Code", "They asked", "When", "You received"]);
+        // Group by player; within a player, oldest first. A later request for the
+        // same amount from the same player is marked as a duplicate.
+        const groups = {};
+        s.pending.forEach((l) => { (groups[l.code] = groups[l.code] || []).push(l); });
+        const rows = [];
+        let dupCount = 0;
+        Object.keys(groups).sort().forEach((code) => {
+          const list = groups[code].sort((a, b) => (a.ts || 0) - (b.ts || 0));
+          const seen = {};
+          rows.push("<tr class=\"group\"><td colspan=\"5\"><label><input class=\"pick pick-all\" type=\"checkbox\" data-code=\"" + esc(code) + "\"> <code>" + esc(code) + "</code> · " + list.length + " waiting</label></td></tr>");
+          list.forEach((l) => {
+            const dup = !!seen[l.requested];
+            seen[l.requested] = true;
+            if (dup) dupCount++;
+            const dollars = (l.requested / 100).toFixed(2);
+            rows.push("<tr data-id=\"" + esc(l.id) + "\" data-code=\"" + esc(code) + "\" data-dup=\"" + (dup ? 1 : 0) + "\"" + (dup ? " class=\"dup\"" : "") + ">" +
+              "<td><input class=\"pick\" type=\"checkbox\" aria-label=\"Select\"></td>" +
+              "<td><code>" + esc(code) + "</code></td><td>" + money(l.requested) + (dup ? " <span class=\"muted\">(duplicate)</span>" : "") + "</td><td class=\"muted\">" + when(l.ts) + "</td>" +
+              "<td><div class=\"row-actions\"><input class=\"amt\" type=\"number\" min=\"0\" step=\"0.01\" value=\"" + dollars + "\">" +
+              "<button class=\"ok\" data-act=\"ok\">Approve</button><button class=\"no\" data-act=\"no\">Reject</button></div></td></tr>");
+          });
+        });
+        $("pendingBox").innerHTML = table(rows, ["", "Code", "They asked", "When", "You received"]);
+        $("dupBtn").textContent = "Reject duplicates (" + dupCount + ")";
+        $("dupBtn").disabled = !dupCount;
       }
+      updateSel();
       $("recentBox").innerHTML = s.recent.length ? table(s.recent.map((l) =>
         "<tr><td><code>" + l.code + "</code></td><td>" + (l.status === "approved" ? money(l.approved) : "rejected") + "</td><td class=\"muted\">" + (l.source || "") + " · " + when(l.resolvedAt) + "</td></tr>"
       ), ["Code", "Result", "Settled"]) : '<p class="empty">Nothing yet.</p>';
@@ -176,19 +209,51 @@
     $("pw").onkeydown = (e) => { if (e.key === "Enter") $("loginBtn").click(); };
     $("logout").onclick = async () => { await api("/api/admin/logout", {}); location.reload(); };
 
+    function selectedIds() {
+      return Array.from(document.querySelectorAll("#pendingBox tr[data-id] input.pick:checked")).map((c) => c.closest("tr").getAttribute("data-id"));
+    }
+    function updateSel() {
+      const n = selectedIds().length;
+      $("rejectSelBtn").textContent = "Reject selected (" + n + ")";
+      $("rejectSelBtn").disabled = !n;
+    }
+    async function rejectMany(ids, btn) {
+      if (!ids.length) return;
+      if (!confirm("Reject " + ids.length + " gift request" + (ids.length === 1 ? "" : "s") + "? Nothing is charged or refunded; they just leave the list.")) return;
+      btn.disabled = true;
+      try {
+        const out = await api("/api/admin/loads/reject-many", { ids });
+        await refresh();
+        $("bulkNote").textContent = "Rejected " + out.rejected + ".";
+      } catch (err) { alert(err.message); btn.disabled = false; }
+    }
+    $("rejectSelBtn").onclick = (e) => rejectMany(selectedIds(), e.currentTarget);
+    $("dupBtn").onclick = (e) => rejectMany(Array.from(document.querySelectorAll('#pendingBox tr[data-dup="1"]')).map((tr) => tr.getAttribute("data-id")), e.currentTarget);
+    $("pendingBox").addEventListener("change", (e) => {
+      const box = e.target.closest("input.pick");
+      if (!box) return;
+      if (box.classList.contains("pick-all")) {
+        document.querySelectorAll('#pendingBox tr[data-code="' + CSS.escape(box.dataset.code) + '"] input.pick').forEach((c) => { c.checked = box.checked; });
+      }
+      updateSel();
+    });
+
     $("pendingBox").addEventListener("click", async (e) => {
-      const btn = e.target.closest("button");
+      const btn = e.target.closest("button[data-act]");
       if (!btn) return;
       const tr = e.target.closest("tr");
       const id = tr.getAttribute("data-id");
+      btn.disabled = true;
       try {
         if (btn.dataset.act === "ok") {
-          await api("/api/admin/loads/" + id + "/approve", { amount: tr.querySelector(".amt").value });
+          await api("/api/admin/loads/" + encodeURIComponent(id) + "/approve", { amount: tr.querySelector(".amt").value });
         } else {
-          await api("/api/admin/loads/" + id + "/reject");
+          // POST with an empty body. (Calling api() with no body sent a GET,
+          // which has no route, so Reject always failed with "Request failed".)
+          await api("/api/admin/loads/" + encodeURIComponent(id) + "/reject", {});
         }
         await refresh();
-      } catch (err) { alert(err.message); }
+      } catch (err) { alert(err.message); btn.disabled = false; }
     });
 
     // Already signed in?

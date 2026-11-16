@@ -180,3 +180,4 @@ body.paypiggy-test .pt-test-ribbon{display:block}
   background:#ffc83d;border:2px solid #3a0810;border-radius:12px;padding:8px 10px}
 .pt-banner small.zone-bullseye{color:#ffc83d;opacity:1;font-size:13px}
 .pt-banner small.zone-miss{color:#ffe0a8;opacity:1}
+.pt-sent:disabled,.pt-thronebtn:disabled,.pt button.pt-sent:disabled,.pt button.pt-thronebtn:disabled{opacity:.6;cursor:wait}
