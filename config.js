@@ -88,13 +88,31 @@ const CONFIG = {
       { label: "Clothespins", text: "Wear a clothespin on each nipple for 5 minutes" }
     ]
   },
+  /* ----- Pick-a-Toe Roulette (foot game; the server picks the toe and charges it) -----
+     Toes go left to right on the photo: 1 pinky ... 5 big toe.
+     value = what that toe costs in dollars, weight = how often it lands (bigger = more often).
+     x / y (optional) move a toe's glowing marker, in % of the photo's width / height. */
+  toeRoulette: {
+    title: "Pick-a-Toe Roulette",
+    tagline: "Five toes, five fates. Call your lucky toe, then let the lights decide what you owe.",
+    photo: "assets/toe-foot.jpg",
+    toes: [
+      { toe: "Pinky Toe",  label: "Pedicure Fund",          value: 15, weight: 26, text: "Her pinky picked you. Pay for her next pedicure, piggy." },
+      { toe: "Fourth Toe", label: "Kiss the Sole",          value: 10, weight: 26, text: "Tribute, then kiss the screen right on her sole and send her the proof." },
+      { toe: "Middle Toe", label: "Worship Tax",            value: 25, weight: 22, text: "Every toe you stare at gets taxed. Pay up." },
+      { toe: "Index Toe",  label: "Double Tribute",         value: 50, weight: 16, text: "She wants it twice. Send double, no whining." },
+      { toe: "Big Toe",    label: "Goddess's Favorite Toe", value: 5,  weight: 10, text: "Her favorite toe likes you. Small tribute, and you unlock a bonus foot pic." }
+    ]
+  },
   /* ----- Rewards (easy to edit) -----
      Each game has a list of rewards. Rule types:
        count  — unlocks once when `stat` reaches `at` (e.g. 3 bullseyes)
        every  — unlocks every `at` plays (e.g. every 10th spin), repeats
        streak — unlocks when `stat` hits `at` in a row (e.g. 3 misses), repeats
        double — Wheel of Humiliation lands on the same task twice in a row, repeats
-     Stats: "bullseyes", "missStreak", "spins" (paid plays of that game).
+       land   — Pick-a-Toe lands on toe number `at` (1 pinky ... 5 big toe), repeats
+     Stats: "bullseyes", "missStreak", "spins" (paid plays of that game),
+       "luckyCalls" (Pick-a-Toe: called the right toe before spinning).
      `badge: true` shows a badge on the player's account right away (nothing to send).
      `penalty: true` marks it as a punishment instead of a prize.
      `nickname: true` lets you type a nickname when you mark it sent.
@@ -135,6 +153,17 @@ const CONFIG = {
           { id: "hum-10",     type: "count",  stat: "spins", at: 10, emoji: "🏷️", title: "Degrading custom nickname", desc: "A nickname from Goddess, shown on your account.", nickname: true },
           { id: "hum-20",     type: "count",  stat: "spins", at: 20, emoji: "🎬", title: "Custom humiliation clip", desc: "A humiliation clip made just for you." },
           { id: "hum-double", type: "double", stat: "spins", at: 2,  emoji: "🔁", title: "\u201cDouble Shame\u201d", desc: "You owe the task double, and you unlock a bonus reward." }
+        ]
+      },
+      toe: {
+        title: "Pick-a-Toe Roulette",
+        emoji: "🦶",
+        href: "toe.html",
+        rules: [
+          { id: "toe-big",     type: "land",  stat: "spins",      at: 5,  emoji: "👣", title: "Bonus foot pic", desc: "Her favorite toe picked you: a bonus foot pic from Goddess." },
+          { id: "toe-5",       type: "count", stat: "spins",      at: 5,  emoji: "💋", title: "Personal foot-worship task", desc: "A sole-kissing task Goddess writes just for you." },
+          { id: "toe-lucky-3", type: "count", stat: "luckyCalls", at: 3,  emoji: "🎯", title: "Custom foot pic", desc: "Goddess poses a custom foot pic just for you." },
+          { id: "toe-10",      type: "count", stat: "spins",      at: 10, emoji: "🎬", title: "Short foot-worship clip", desc: "A short foot clip made just for you." }
         ]
       }
     },

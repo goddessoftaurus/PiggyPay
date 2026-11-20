@@ -425,7 +425,7 @@ function cookie(setCookie) {
   const path = require("path");
   ok("backLinkUrl defaults to the Linktree", CONFIG.backLinkUrl === "https://linktr.ee/crystal98xo", "got=" + CONFIG.backLinkUrl);
   ok("gamesHubUrl points at the goddessarcade hub", CONFIG.gamesHubUrl === "https://goddessarcade.onrender.com/games.html", "got=" + CONFIG.gamesHubUrl);
-  for (const file of ["game.html", "wheel.html", "humiliation.html"]) {
+  for (const file of ["game.html", "wheel.html", "humiliation.html", "toe.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     const backs = html.match(/class="back[^"]*"[^>]*>/g) || [];
     const allLinktree = html.includes('href="https://linktr.ee/crystal98xo">← back to links');
@@ -582,7 +582,7 @@ function cookie(setCookie) {
   r = await req(port, "GET", "/assets/fonts/MatchaStyle.woff2");
   ok("Matcha Style woff2 is served", r.status === 200 && r.text.length > 1000, "status=" + r.status + " type=" + r.headers["content-type"] + " len=" + (r.text && r.text.length));
 
-  for (const file of ["game.html", "wheel.html", "humiliation.html"]) {
+  for (const file of ["game.html", "wheel.html", "humiliation.html", "toe.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     ok(file + " has a My account link", html.includes('class="back back-account"') && html.includes("My account"));
   }
@@ -819,15 +819,84 @@ function cookie(setCookie) {
     const adminHtml = fs.readFileSync(path.join(__dirname, "admin.html"), "utf8");
     ok("admin Reject sends a POST (with a body)", /\/reject", \{\}\)/.test(adminHtml) && !/\/reject"\);/.test(adminHtml));
     ok("admin has bulk reject buttons", adminHtml.includes("rejectSelBtn") && adminHtml.includes("dupBtn") && adminHtml.includes("reject-many"));
-    for (const f of ["game.js", "wheel.js", "account.js"]) {
+    for (const f of ["game.js", "wheel.js", "toe.js", "account.js"]) {
       const js = fs.readFileSync(path.join(__dirname, "..", f), "utf8");
       ok(f + " guards gift requests against double taps", js.includes("function requestLoadOnce") && !js.includes('api("/api/request-load"', js.indexOf("function requestLoadOnce") + 400));
     }
   }
 
-  for (const file of ["game.html", "wheel.html", "humiliation.html", "games.html", "account.html"]) {
+  for (const file of ["game.html", "wheel.html", "humiliation.html", "toe.html", "games.html", "account.html"]) {
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     ok(file + " loads the rewards panel", html.includes('src="rewards.js"') && html.includes('href="rewards.css"'));
+  }
+
+  console.log("20. Pick-a-Toe Roulette");
+  {
+    const toes = CONFIG.toeRoulette.toes;
+    ok("five toes, pinky to big toe", toes.length === 5 && toes[0].toe === "Pinky Toe" && toes[4].toe === "Big Toe");
+    ok("each toe has its own outcome", new Set(toes.map((t) => t.label)).size === 5 && toes.every((t) => t.value > 0 && t.text));
+    r = await req(port, "POST", "/api/new", { body: {} });
+    const toeAuth = { Authorization: "Bearer " + r.json.token };
+    r = await req(port, "POST", "/api/spin", { headers: toeAuth, body: { game: "toe", pick: 3 } });
+    ok("toe spin rejected when broke", r.status === 400 && r.json.broke, r.text);
+    r = await req(port, "POST", "/api/request-load", { headers: toeAuth, body: { amount: 100 } });
+    r = await req(port, "POST", "/api/admin/loads/" + r.json.load.id + "/approve", { headers: { Cookie: adminCookie }, body: { amount: 100 } });
+    ok("toe player funded $100", r.status === 200 && r.json.player.balance === 10000, r.text);
+    const statsB = (await req(port, "GET", "/api/admin/stats", { headers: { Cookie: adminCookie } })).json;
+    const toeBefore = (statsB.games.toe && statsB.games.toe.count) || 0;
+
+    fixRandom([0.6]); // weights 26/26/22/16/10 -> middle toe
+    r = await req(port, "POST", "/api/spin", { headers: toeAuth, body: { game: "toe", pick: 3, charge: 1, price: 1 } });
+    let res = r.json.result;
+    ok("called the middle toe and it landed", r.status === 200 && res.game === "toe" && res.toe === 3 && res.called === 3 && res.lucky === true, r.text);
+    ok("server charges the toe's price, not the client's", res.charge === 2500 && res.balance === 7500 && res.label === "Worship Tax");
+    ok("toe spin is recorded in history", r.json.player.pins[0].game === "toe" && r.json.player.pins[0].label === "Worship Tax");
+
+    fixRandom([0.95]); // -> big toe
+    r = await req(port, "POST", "/api/spin", { headers: toeAuth, body: { game: "toe", pick: 1 } });
+    res = r.json.result;
+    ok("big toe: Goddess's Favorite Toe, wrong call", res.toe === 5 && res.label === "Goddess's Favorite Toe" && res.lucky === false && res.charge === 500, r.text);
+    ok("landing on the big toe unlocks the bonus foot pic", (res.unlocked || []).some((u) => u.ruleId === "toe-big"), JSON.stringify(res.unlocked));
+
+    fixRandom([0.1]); // -> pinky
+    r = await req(port, "POST", "/api/spin", { headers: toeAuth, body: { game: "toe", pick: 9 } });
+    ok("a bad pick is ignored, not trusted", r.json.result.called === null && r.json.result.lucky === false && r.json.result.toe === 1);
+    r = await req(port, "POST", "/api/spin", { headers: toeAuth, body: { game: "toe", pick: 1 } });
+    ok("2nd lucky call unlocks nothing yet", !(r.json.result.unlocked || []).some((u) => u.ruleId === "toe-lucky-3"));
+    r = await req(port, "POST", "/api/spin", { headers: toeAuth, body: { game: "toe", pick: 1 } });
+    res = r.json.result;
+    const got = (res.unlocked || []).map((u) => u.ruleId).sort().join();
+    ok("5th spin + 3rd lucky call unlock the foot-worship task and custom foot pic", got === "toe-5,toe-lucky-3", got);
+    ok("pocket after five toe spins is $25", r.json.player.balance === 2500, "balance=" + r.json.player.balance);
+    realOdds();
+
+    r = await req(port, "GET", "/api/admin/rewards", { headers: { Cookie: adminCookie } });
+    const toeClaims = r.json.pending.filter((c) => /^toe-/.test(c.ruleId)).map((c) => c.ruleId).sort().join();
+    ok("toe rewards wait in the admin queue (never auto-sent)", toeClaims === "toe-5,toe-big,toe-lucky-3", toeClaims);
+    r = await req(port, "GET", "/api/rewards", { headers: toeAuth });
+    ok("rewards list has the toe game with progress", r.json.games.toe.rules.length === 4 && r.json.me.stats.spins.toe === 5, JSON.stringify(r.json.me && r.json.me.stats));
+    r = await req(port, "GET", "/api/admin/stats", { headers: { Cookie: adminCookie } });
+    ok("analytics counts toe spins", r.json.games.toe.count === toeBefore + 5, JSON.stringify(r.json.games.toe));
+
+    const rw = require("./rewards");
+    const cfg = rw.normalizeConfig(CONFIG.rewards);
+    const prog = rw.ensureProgress({ id: "toe-unit" }, cfg);
+    let hits = rw.applyPlay(prog, { game: "toe", toe: 5, lucky: false }, cfg);
+    ok("unit: big toe repeats its bonus", hits.map((h) => h.rule.id).join() === "toe-big");
+    hits = rw.applyPlay(prog, { game: "toe", toe: 5 }, cfg);
+    ok("unit: big toe again, bonus again", hits.map((h) => h.rule.id).join() === "toe-big" && prog.counts["toe-big"] === 2);
+    ok("unit: toe spins don't count for the wheels", prog.spins.toe === 2 && prog.spins.wheel === 0 && prog.spins.humiliation === 0);
+
+    r = await req(port, "GET", "/toe.html");
+    ok("toe.html is served", r.status === 200 && r.text.includes('data-rewards-game="toe"') && r.text.includes("toe.js"));
+    r = await req(port, "GET", "/assets/toe-foot.jpg");
+    ok("foot photo is served", r.status === 200 && /image\/jpeg/.test(r.headers["content-type"]));
+    const toeHtml = fs.readFileSync(path.join(__dirname, "..", "toe.html"), "utf8");
+    ok("toe page has Back to links to the Linktree", toeHtml.includes('href="https://linktr.ee/crystal98xo">← back to links'));
+    const hubHtml2 = fs.readFileSync(path.join(__dirname, "..", "games.html"), "utf8");
+    ok("games hub has a Pick-a-Toe card", /class="hub-card" href="toe.html"/.test(hubHtml2) && hubHtml2.includes("Pick-a-Toe Roulette"));
+    const toeJs = fs.readFileSync(path.join(__dirname, "..", "toe.js"), "utf8");
+    ok("toe.js has five markers and sends the pick", toeJs.includes("DEFAULT_SPOTS") && toeJs.includes('game: "toe", pick'));
   }
 
   server.close();

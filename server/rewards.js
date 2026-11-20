@@ -12,8 +12,8 @@
 
 const crypto = require("crypto");
 
-const GAMES = ["poster", "wheel", "humiliation"];
-const RULE_TYPES = ["count", "every", "streak", "double"];
+const GAMES = ["poster", "wheel", "humiliation", "toe"];
+const RULE_TYPES = ["count", "every", "streak", "double", "land"];
 
 function num(n, d) {
   const x = Number(n);
@@ -84,7 +84,8 @@ function emptyProgress() {
     bullseyes: 0,
     misses: 0,
     missStreak: 0,
-    spins: { poster: 0, wheel: 0, humiliation: 0 },
+    spins: { poster: 0, wheel: 0, humiliation: 0, toe: 0 },
+    luckyCalls: 0,
     lastHum: null,
     spent: 0,
     level: 0,
@@ -110,7 +111,7 @@ function ensureProgress(p, cfg) {
   const r = p.rewards;
   const base = emptyProgress();
   for (const k of Object.keys(base)) if (r[k] == null) r[k] = base[k];
-  r.spins = Object.assign({ poster: 0, wheel: 0, humiliation: 0 }, r.spins || {});
+  r.spins = Object.assign({ poster: 0, wheel: 0, humiliation: 0, toe: 0 }, r.spins || {});
   r.counts = r.counts && typeof r.counts === "object" ? r.counts : {};
   return r;
 }
@@ -142,6 +143,9 @@ function applyPlay(prog, result, cfg) {
     doubleHit = prog.lastHum != null && prog.lastHum === key;
     // A pair is used up once it pays out, so three in a row is one Double Shame.
     prog.lastHum = doubleHit ? null : key;
+  } else if (game === "toe") {
+    // Called your shot: picked a toe before spinning and the lights stopped on it.
+    if (result.lucky) prog.luckyCalls = (prog.luckyCalls || 0) + 1;
   }
 
   const unlocked = [];
@@ -153,6 +157,7 @@ function applyPlay(prog, result, cfg) {
     else if (rule.type === "every") hit = v > 0 && v % rule.at === 0;
     else if (rule.type === "streak") hit = v >= rule.at;
     else if (rule.type === "double") hit = doubleHit;
+    else if (rule.type === "land") hit = Number(result.toe) === rule.at;
     if (!hit) continue;
     if (rule.type === "streak") prog[rule.stat] = 0;
     prog.counts[rule.id] = times + 1;
@@ -203,6 +208,8 @@ function levelInfo(cfg, spentCents) {
 function statLabel(rule) {
   if (rule.stat === "bullseyes") return "Bullseyes";
   if (rule.stat === "missStreak") return "Misses in a row";
+  if (rule.stat === "luckyCalls") return "Lucky calls";
+  if (rule.type === "land") return "Toe #" + rule.at;
   return "Spins";
 }
 
@@ -232,6 +239,9 @@ function ruleView(rule, prog, game) {
     out.unlocked = times > 0;
   } else if (rule.type === "streak") {
     out.current = Math.min(v, rule.at);
+    out.unlocked = times > 0;
+  } else if (rule.type === "land") {
+    out.current = 0;
     out.unlocked = times > 0;
   } else {
     out.current = prog.lastHum != null ? 1 : 0;

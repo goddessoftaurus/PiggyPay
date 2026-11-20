@@ -88,7 +88,19 @@
       title: hum.title || "Wheel of Humiliation",
       blurb: hum.tagline || "",
       price: "$" + humPrice + " a spin"
-    }
+    },
+    (function () {
+      var tr = C.toeRoulette || {};
+      var vals = (tr.toes || []).map(function (t) { return Number(t.value) || 0; }).filter(function (v) { return v > 0; });
+      var lo = vals.length ? Math.min.apply(null, vals) : 5, hi = vals.length ? Math.max.apply(null, vals) : 50;
+      return {
+        href: withCode("toe.html"),
+        emoji: "\uD83E\uDDB6",
+        title: tr.title || "Pick-a-Toe Roulette",
+        blurb: tr.hubBlurb || "Call your lucky toe. The lights chase across her toes, and whichever one they stop on decides what you owe.",
+        price: "$" + lo + " \u2013 $" + hi
+      };
+    })()
   ];
 
   var box = document.getElementById("hubCards");

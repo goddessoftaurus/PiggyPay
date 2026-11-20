@@ -166,7 +166,7 @@
     }
 
     const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    const gameNames = { poster: "Pin the Tail", wheel: "Financial Torture", humiliation: "Humiliation", all: "All games" };
+    const gameNames = { poster: "Pin the Tail", wheel: "Financial Torture", humiliation: "Humiliation", toe: "Pick-a-Toe", all: "All games" };
     function rewardRows(list, actions) {
       return table(list.map((c) => "<tr data-id=\"" + esc(c.id) + "\" data-nick=\"" + (c.nickname ? 1 : 0) + "\"><td><code>" + esc(c.code) + "</code></td>" +
         "<td>" + esc(c.emoji) + " <b>" + esc(c.title) + "</b>" + (c.penalty ? " <span class=\"muted\">(penalty)</span>" : "") + "<div class=\"muted\">" + esc(gameNames[c.game] || c.game) + " · " + when(c.ts) + "</div></td>" +

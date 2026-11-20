@@ -94,10 +94,12 @@
   function gameName(g) {
     if (g === "wheel") return "Wheel of Financial Torture";
     if (g === "humiliation") return "Wheel of Humiliation";
+    if (g === "toe") return "Pick-a-Toe Roulette";
     return "Pin the Tail on the Pig";
   }
   function pinLine(p) {
     if (p.game === "humiliation") return p.text || p.label || "Task";
+    if (p.game === "toe") return "Toe roulette: " + (p.label || "");
     if (p.value === "ALL") return "ALL (the rest of the pocket)";
     var verb = p.game === "wheel" ? "Spun " : "Landed ";
     return verb + (p.label || p.value || "");
@@ -163,7 +165,8 @@
     $("playLinks").innerHTML =
       '<a href="game.html' + q + '">Pin the Tail on the Pig</a>' +
       '<a href="wheel.html' + q + '">Wheel of Financial Torture</a>' +
-      '<a href="humiliation.html' + q + '">Wheel of Humiliation</a>';
+      '<a href="humiliation.html' + q + '">Wheel of Humiliation</a>' +
+      '<a href="toe.html' + q + '">Pick-a-Toe Roulette</a>';
     renderPins();
     renderFunds();
     paintPayButtons();

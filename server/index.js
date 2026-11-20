@@ -172,6 +172,29 @@ function pickHumiliationTask(tasks) {
   return { task: tasks[index], index };
 }
 
+/* Pick-a-Toe Roulette: five toes, left to right on the photo (1 pinky ... 5 big toe). */
+const DEFAULT_TOES = [
+  { toe: "Pinky Toe", label: "Pedicure Fund", value: 15, weight: 26, text: "Pay for her next pedicure." },
+  { toe: "Fourth Toe", label: "Kiss the Sole", value: 10, weight: 26, text: "Tribute, then kiss the screen right on her sole." },
+  { toe: "Middle Toe", label: "Worship Tax", value: 25, weight: 22, text: "Every toe you stare at gets taxed." },
+  { toe: "Index Toe", label: "Double Tribute", value: 50, weight: 16, text: "She wants it twice." },
+  { toe: "Big Toe", label: "Goddess's Favorite Toe", value: 5, weight: 10, text: "Small tribute, and you unlock a bonus foot pic." }
+];
+
+function toeList() {
+  const src = CONFIG.toeRoulette && Array.isArray(CONFIG.toeRoulette.toes) && CONFIG.toeRoulette.toes.length === 5
+    ? CONFIG.toeRoulette.toes
+    : DEFAULT_TOES;
+  return src.map((t, i) => ({
+    n: i + 1,
+    toe: String((t && t.toe) || "Toe " + (i + 1)),
+    label: String((t && t.label) || "Toe " + (i + 1)),
+    text: String((t && t.text) || ""),
+    value: Math.max(1, Number(t && t.value) || 5),
+    weight: Math.max(0.01, Number(t && t.weight) || 1)
+  }));
+}
+
 function dollarsToCents(n) {
   const d = Number(n);
   if (!isFinite(d) || d <= 0) return 0;
@@ -357,10 +380,48 @@ function createApp() {
     res.json({ ok: true, result: out.result, player: out.player });
   }
 
+  async function toeSpin(req, res) {
+    const p = await requirePlayer(req, res);
+    if (!p) return;
+    const toes = toeList();
+    const minCents = Math.round(Math.min(...toes.map((t) => t.value)) * 100);
+    // The player's call is only a bet on the outcome; it never changes the odds.
+    const called = Number(req.body && req.body.pick);
+    const pick = Number.isInteger(called) && called >= 1 && called <= toes.length ? called : null;
+    const out = await store.play(p, (balance) => {
+      if (balance < minCents) {
+        return { error: "You need $" + minCents / 100 + " in your pocket to spin the toes.", broke: true, status: 400 };
+      }
+      const chosen = pickSegment(toes);
+      const t = chosen.seg;
+      const charge = Math.min(Math.round(t.value * 100), balance);
+      return {
+        label: t.label,
+        text: t.text,
+        toe: t.n,
+        toeName: t.toe,
+        value: t.value,
+        charge,
+        balance: balance - charge,
+        index: chosen.index,
+        called: pick,
+        lucky: pick != null && pick === t.n,
+        game: "toe"
+      };
+    });
+    if (out.error) {
+      const body = { error: out.error };
+      if (out.broke) { body.broke = true; body.player = out.player; }
+      return res.status(out.status || 400).json(body);
+    }
+    res.json({ ok: true, result: out.result, player: out.player });
+  }
+
   app.post("/api/pin", playHandler("poster"));
   app.post("/api/spin", wrap(async (req, res) => {
     const requested = (req.body && req.body.game) || "wheel";
     if (requested === "humiliation") return humiliationSpin(req, res);
+    if (requested === "toe") return toeSpin(req, res);
     return playHandler("wheel")(req, res);
   }));
 
@@ -511,6 +572,7 @@ if (require.main === module) {
     console.log("  Poster:    http://localhost:" + port + "/game.html");
     console.log("  Wheel:     http://localhost:" + port + "/wheel.html");
     console.log("  Humiliation: http://localhost:" + port + "/humiliation.html");
+    console.log("  Pick-a-Toe:  http://localhost:" + port + "/toe.html");
     console.log("  Admin:     http://localhost:" + port + "/admin");
     console.log("  Analytics: http://localhost:" + port + "/admin/analytics");
     console.log("  Test play: http://localhost:" + port + "/admin/test");

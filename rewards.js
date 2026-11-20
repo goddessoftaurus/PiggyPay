@@ -7,7 +7,7 @@
   var C = window.CONFIG || {};
   var API = (C.apiBase || "").replace(/\/$/, "");
   var TOKEN_KEY = "paypiggy-token";
-  var GAME_ORDER = ["poster", "wheel", "humiliation"];
+  var GAME_ORDER = ["poster", "wheel", "humiliation", "toe"];
 
   function token() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
   function esc(s) {
@@ -31,7 +31,7 @@
         rules: (src.rules || []).map(function (r) {
           return { id: r.id, type: r.type, emoji: r.emoji, title: r.title, desc: r.desc, at: r.at,
             badge: !!r.badge, penalty: !!r.penalty, repeat: r.type !== "count",
-            statLabel: r.stat === "bullseyes" ? "Bullseyes" : (r.stat === "missStreak" ? "Misses in a row" : "Spins") };
+            statLabel: r.stat === "bullseyes" ? "Bullseyes" : (r.stat === "missStreak" ? "Misses in a row" : (r.stat === "luckyCalls" ? "Lucky calls" : "Spins")) };
         })
       };
     });
@@ -53,6 +53,8 @@
     if (r.type === "every") return "Every " + r.at + " spins";
     if (r.type === "streak") return r.at + " misses in a row";
     if (r.type === "double") return "Same task twice in a row";
+    if (r.type === "land") return "Land on her " + (["pinky", "fourth toe", "middle toe", "index toe", "big toe"][r.at - 1] || "toe #" + r.at);
+    if (r.statLabel === "Lucky calls") return r.at === 1 ? "Call the right toe once" : "Call the right toe " + r.at + " times";
     var unit = r.statLabel === "Bullseyes" ? (r.at === 1 ? "bullseye" : "bullseyes") : (r.at === 1 ? "spin" : "spins");
     return (r.at === 1 && unit === "bullseye" ? "1st bullseye" : r.at + " " + unit);
   }
@@ -68,7 +70,7 @@
     } else {
       state = r.times > 0 ? ((r.penalty ? "Got" : "Won") + " \u00d7" + r.times) : (r.penalty ? "Penalty" : "Locked");
     }
-    if (signedIn && !(r.type === "count" && on)) {
+    if (signedIn && r.type !== "land" && !(r.type === "count" && on)) {
       var at = r.type === "double" ? 2 : r.at;
       var cur = Math.max(0, Math.min(at, Number(r.current) || 0));
       var label = r.type === "double" ? "Same task in a row" : (r.type === "every" ? r.statLabel + " to next" : r.statLabel);

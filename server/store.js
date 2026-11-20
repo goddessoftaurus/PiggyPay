@@ -410,7 +410,7 @@ function markEvent(eventId) {
 }
 
 function pinGame(game) {
-  if (game === "wheel" || game === "humiliation" || game === "poster") return game;
+  if (game === "wheel" || game === "humiliation" || game === "poster" || game === "toe") return game;
   return "poster";
 }
 
@@ -630,7 +630,7 @@ function sumWindow(sales, from) {
 function computeStats(db, goalDollars) {
   const goal = Math.max(100, Math.round((Number(goalDollars) || 1000) * 100));
   const sales = [];
-  const games = { poster: { count: 0, amount: 0 }, wheel: { count: 0, amount: 0 }, humiliation: { count: 0, amount: 0 } };
+  const games = { poster: { count: 0, amount: 0 }, wheel: { count: 0, amount: 0 }, humiliation: { count: 0, amount: 0 }, toe: { count: 0, amount: 0 } };
   for (const p of Object.values(db.players)) {
     if (p.test) continue;
     for (const l of p.loads || []) {
