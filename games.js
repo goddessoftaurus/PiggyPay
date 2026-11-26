@@ -102,6 +102,16 @@
       };
     })()
   ];
+  var M = C.merch || {};
+  if (M.url) games.push({
+    href: M.url,
+    external: true,
+    emoji: "\uD83D\uDC51",
+    title: M.title || "Shop Mari's Merch \uD83D\uDC51",
+    blurb: M.tagline || "",
+    note: M.note || "",
+    price: "Opens her shop"
+  });
 
   var box = document.getElementById("hubCards");
   if (!box) return;
@@ -112,9 +122,11 @@
     var blurb = g.blurb
       ? '<small class="hub-blurb">' + escapeHtml(g.blurb) + "</small>"
       : "";
-    return '<a class="hub-card" href="' + escapeHtml(g.href) + '">' +
+    var note = g.note ? '<small class="hub-soon">' + escapeHtml(g.note) + "</small>" : "";
+    var ext = g.external ? ' target="_blank" rel="noopener"' : "";
+    return '<a class="hub-card' + (g.external ? " hub-merch-card" : "") + '" href="' + escapeHtml(g.href) + '"' + ext + '>' +
       '<span class="hub-emoji" aria-hidden="true">' + g.emoji + "</span>" +
-      '<span class="hub-copy"><b>' + escapeHtml(g.title) + "</b>" + blurb + price + "</span>" +
+      '<span class="hub-copy"><b>' + escapeHtml(g.title) + "</b>" + blurb + note + price + "</span>" +
       "</a>";
   }).join("");
 

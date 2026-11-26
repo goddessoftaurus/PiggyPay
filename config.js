@@ -184,7 +184,7 @@ const CONFIG = {
         popup: { id: "paypig-500",     style: "gold",     title: "You're THE Paypig", subline: "Can you become the ROYAL HOG?", button: "Keep paying, piggy" } },
       { name: "Platinum Pig", min: 1000, emoji: "💎", perks: ["Priority replies", "15% off game spins (applied by Goddess)", "Bonus photo"],
         popup: { id: "level-platinum", style: "platinum", title: "You're a Platinum Pig", subline: "So close to the crown. Pay {toGo} more to become the {next}\u2026", button: "Keep paying, piggy" } },
-      { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set"],
+      { name: "Royal Hog",    min: 1500, emoji: "👑", perks: ["Priority replies", "20% off game spins (applied by Goddess)", "Monthly photo set", "Exclusive Royal Hog merch drop (sent by Goddess)"],
         popup: { id: "level-royal",    style: "royal",    title: "You're the ROYAL HOG", subline: "The top of the pen. Now keep your crown, piggy.", button: "Long live the Hog" } }
     ],
     leaderboard: {
@@ -200,6 +200,14 @@ const CONFIG = {
   /* Combined games homepage. Game pages on other hosts (like wheeloftorture)
      send "Back to games" here so everything funnels to one hub. */
   gamesHubUrl: "https://goddessarcade.onrender.com/games.html",
+  /* "Shop Mari's Merch" button and hub card (opens in a new tab). */
+  merch: {
+    url: "https://goddess-arcade.printify.me",
+    label: "Shop Mari's Merch",
+    title: "Shop Mari's Merch \ud83d\udc51",
+    tagline: "Collars, sub essentials and Goddess-approved goodies.",
+    note: "More coming soon: collars and more."
+  },
 
   /* Pay up opens an in-page sheet with Throne + card options, pre-filled
      with the amount owed. PAYMENT_URL is unused (kept for compatibility). */

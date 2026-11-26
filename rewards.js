@@ -222,7 +222,21 @@
       b.innerHTML = "\ud83c\udf81 Rewards";
       b.addEventListener("click", function () { open(GAME); });
       row.appendChild(b);
+      addMerchLink(row, "back back-merch");
     });
+  }
+
+  /* "Shop Mari's Merch": opens her Printify shop in a new tab. */
+  function addMerchLink(row, cls) {
+    var M = C.merch || {};
+    if (!M.url || row.querySelector(".back-merch, .hub-merch")) return;
+    var a = document.createElement("a");
+    a.className = cls;
+    a.href = M.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "\ud83d\udc51 " + (M.label || "Shop Mari's Merch");
+    row.appendChild(a);
   }
 
   function onResult(result, banner) {

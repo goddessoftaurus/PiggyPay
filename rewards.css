@@ -1,10 +1,11 @@
 /* Goddess Arcade — Rewards panel, account section, hub card */
-.rw-btn,a.back.back-rewards,button.back.back-rewards{
+.rw-btn,a.back.back-rewards,button.back.back-rewards,a.back.back-merch{
   display:inline-flex;align-items:center;gap:6px;cursor:pointer;
   background:#800020!important;color:#fff!important;border:1px solid #5c0017!important;
   font:800 14px/1 Arial,Helvetica,sans-serif;padding:7px 13px;border-radius:99px;
   box-shadow:0 2px 0 #5c0017;text-decoration:none}
-.rw-btn:hover,.rw-btn:focus-visible,.back-rewards:hover,.back-rewards:focus-visible{background:#5c0017!important}
+.rw-btn:hover,.rw-btn:focus-visible,.back-rewards:hover,.back-rewards:focus-visible,.back-merch:hover,.back-merch:focus-visible{background:#5c0017!important}
+.back-row.bottom a.back.back-merch{color:#fff!important}
 
 .rw-over{position:fixed;inset:0;z-index:80;display:none;align-items:flex-end;justify-content:center;
   background:rgba(60,0,15,.55);padding:12px}

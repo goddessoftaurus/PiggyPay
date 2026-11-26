@@ -899,6 +899,17 @@ function cookie(setCookie) {
     ok("toe.js has five markers and sends the pick", toeJs.includes("DEFAULT_SPOTS") && toeJs.includes('game: "toe", pick'));
   }
 
+  console.log("21. Shop Mari's Merch");
+  {
+    ok("merch link points at her Printify shop", CONFIG.merch && CONFIG.merch.url === "https://goddess-arcade.printify.me");
+    const royal = CONFIG.rewards.levels.find((l) => l.name === "Royal Hog");
+    ok("Royal Hog lists the merch drop perk", royal.perks.includes("Exclusive Royal Hog merch drop (sent by Goddess)"));
+    const hub = fs.readFileSync(path.join(__dirname, "..", "games.html"), "utf8");
+    ok("hub has the merch card and button, new tab", hub.includes("Shop Mari's Merch 👑") && /class="hub-account hub-merch" href="https:\/\/goddess-arcade\.printify\.me" target="_blank"/.test(hub));
+    const rjs = fs.readFileSync(path.join(__dirname, "..", "rewards.js"), "utf8");
+    ok("game pages get a merch button that opens a new tab", rjs.includes("addMerchLink") && rjs.includes('a.target = "_blank"'));
+  }
+
   server.close();
   await store.close();
   if (fails.length) {
